@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 
 include(":core")
 include(":desktopHost")
+include(":androidApp")
