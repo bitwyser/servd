@@ -1,0 +1,527 @@
+<title>servd console</title>
+<style>
+  /* ---------- tokens: light (bare :root) ---------- */
+  :root {
+    --bg: #E9EEEF;
+    --surface: #FFFFFF;
+    --surface-2: #F1F5F6;
+    --border: #D7DFE1;
+    --border-strong: #C2CDD0;
+    --ink: #0F1A1F;
+    --muted: #566A70;
+    --faint: #849499;
+    --accent: #0E9E88;
+    --accent-ink: #0A7563;
+    --accent-soft: #D6EFEA;
+    --idle: #93A2A7;
+    --error: #D14A43;
+    --warn: #B9770E;
+    --shadow: 0 1px 2px rgba(15,26,31,.06), 0 8px 24px rgba(15,26,31,.06);
+    --shadow-sm: 0 1px 2px rgba(15,26,31,.07);
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+    --r: 10px;
+    --r-sm: 7px;
+    color-scheme: light;
+  }
+  /* ---------- tokens: dark (system default, unless explicit light) ---------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1316;
+      --surface: #141D21;
+      --surface-2: #1A252A;
+      --border: #253136;
+      --border-strong: #35474E;
+      --ink: #E6EDEF;
+      --muted: #90A3AA;
+      --faint: #647A81;
+      --accent: #22C3A6;
+      --accent-ink: #7BEBD8;
+      --accent-soft: #113029;
+      --idle: #5D7178;
+      --error: #EE7169;
+      --warn: #DFA24E;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+      color-scheme: dark;
+    }
+  }
+  /* ---------- tokens: dark (explicit toggle) ---------- */
+  :root[data-theme="dark"] {
+    --bg: #0D1316;
+    --surface: #141D21;
+    --surface-2: #1A252A;
+    --border: #253136;
+    --border-strong: #35474E;
+    --ink: #E6EDEF;
+    --muted: #90A3AA;
+    --faint: #647A81;
+    --accent: #22C3A6;
+    --accent-ink: #7BEBD8;
+    --accent-soft: #113029;
+    --idle: #5D7178;
+    --error: #EE7169;
+    --warn: #DFA24E;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: var(--mono); }
+  .app { max-width: 1240px; margin: 0 auto; padding: 18px; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
+  .brand .prompt { color: var(--accent); }
+  .cursor { width: 8px; height: 16px; background: var(--accent); display: inline-block; border-radius: 1px; animation: blink 1.15s steps(1) infinite; transform: translateY(2px); }
+  @keyframes blink { 50% { opacity: 0; } }
+  .vtag { font-family: var(--mono); font-size: 11px; color: var(--faint); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    color: var(--accent-ink); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 100px; padding: 4px 11px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .dot.live { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent); } }
+  .uptime { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .spacer { flex: 1 1 auto; }
+
+  .host-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  .host-chip .lock { color: var(--accent); display: inline-flex; }
+  .chip-warn {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent);
+    border-radius: 6px; padding: 2px 7px;
+  }
+  .icon-btn {
+    display: inline-grid; place-items: center;
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 246px 1fr 316px;
+    gap: 14px;
+    margin-top: 14px;
+    align-items: start;
+  }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  .panel-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .count { font-family: var(--mono); font-size: 11px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 20px; padding: 1px 8px; font-weight: 700; }
+
+  /* ---------- devices ---------- */
+  .devices { display: flex; flex-direction: column; }
+  .dev { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .dev:last-child { border-bottom: 0; }
+  .ava {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 700; color: #fff;
+  }
+  .dev-meta { min-width: 0; flex: 1; }
+  .dev-name { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dev-ip { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .presence { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .presence.on { background: var(--accent); }
+  .presence.idle { background: var(--idle); }
+  .tag-you { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+
+  /* ---------- center: tabs ---------- */
+  .center { display: flex; flex-direction: column; min-height: 560px; }
+  .tabs { display: flex; gap: 2px; padding: 8px 8px 0; border-bottom: 1px solid var(--border); }
+  .tab {
+    font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+    color: var(--muted); background: transparent; border: 0; cursor: pointer;
+    padding: 9px 14px; border-radius: 8px 8px 0 0; position: relative;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--accent-ink); }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px; }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .view { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .view.active { display: flex; }
+
+  /* ---------- chat ---------- */
+  .chat-log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { display: flex; flex-direction: column; gap: 2px; max-width: 78%; }
+  .msg.me { align-self: flex-end; align-items: flex-end; }
+  .msg-head { display: flex; align-items: baseline; gap: 8px; }
+  .msg-who { font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .msg-time { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+  .bubble {
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 4px 12px 12px 12px; font-size: 13.5px;
+  }
+  .msg.me .bubble { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 26%, transparent); border-radius: 12px 4px 12px 12px; }
+  .sys { align-self: center; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .file-msg { display: flex; align-items: center; gap: 10px; }
+  .file-msg .fi { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--border); color: var(--accent); }
+
+  .composer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .composer input {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px 12px; color: var(--ink); font-family: var(--sans); font-size: 13.5px;
+  }
+  .composer input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .send { background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 10px 14px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; }
+  .send:hover { filter: brightness(1.05); }
+
+  /* ---------- files / drop ---------- */
+  .files-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .drop {
+    border: 1.5px dashed var(--border-strong); border-radius: var(--r);
+    padding: 26px; text-align: center; color: var(--muted); background: var(--surface-2);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
+  }
+  .drop:hover { border-color: var(--accent); color: var(--ink); }
+  .drop .big { color: var(--accent); }
+  .drop strong { font-family: var(--mono); font-weight: 700; color: var(--ink); }
+  .drop small { font-family: var(--mono); color: var(--faint); }
+  .flist { display: flex; flex-direction: column; gap: 8px; }
+  .frow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
+  .frow .fi { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); flex-shrink: 0; }
+  .frow .fmeta { flex: 1; min-width: 0; }
+  .frow .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frow .fsub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .frow .fsize { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); cursor: pointer; }
+  .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+  /* ---------- right rail ---------- */
+  .rail { display: flex; flex-direction: column; gap: 14px; }
+  .host-card { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .kv { display: flex; flex-direction: column; gap: 3px; }
+  .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .v { font-family: var(--mono); font-size: 13px; color: var(--ink); word-break: break-all; }
+  .fingerprint { display: flex; align-items: center; gap: 8px; }
+  .fingerprint .v { font-size: 11.5px; color: var(--muted); }
+  .copy { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); cursor: pointer; flex-shrink: 0; }
+  .copy:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+  .svc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .svc:last-child { border-bottom: 0; }
+  .svc-ico { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
+  .svc.up .svc-ico { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-soft); }
+  .svc-meta { flex: 1; min-width: 0; }
+  .svc-name { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 13.5px; font-weight: 700; }
+  .svc-name .lock { color: var(--accent); display: inline-flex; }
+  .svc-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .svc-state { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+  .st-up { color: var(--accent-ink); background: var(--accent-soft); }
+  .st-down { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); }
+
+  /* toggle */
+  .switch { position: relative; width: 40px; height: 23px; flex-shrink: 0; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .track { position: absolute; inset: 0; border-radius: 20px; background: var(--idle); transition: background .18s; }
+  .knob { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .18s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track + .knob { transform: translateX(17px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .rail-note { font-family: var(--mono); font-size: 11px; color: var(--faint); padding: 10px 14px; display: flex; gap: 7px; align-items: flex-start; line-height: 1.45; }
+  .rail-note .lock { color: var(--muted); flex-shrink: 0; margin-top: 1px; }
+
+  .foot { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--faint); margin: 18px 0 4px; }
+
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: 1fr; }
+    .center { min-height: 420px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor, .dot.live { animation: none; }
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="app">
+  <!-- ===== top bar ===== -->
+  <header class="topbar">
+    <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span></div>
+    <span class="vtag">v0.1.0</span>
+    <span class="status-pill"><span class="dot live"></span>daemon running</span>
+    <span class="uptime">up 2h 14m</span>
+    <span class="spacer"></span>
+    <span class="host-chip">
+      <span class="lock" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+      https://192.168.43.1:8443
+    </span>
+    <span class="chip-warn" title="Self-signed certificate — verify the fingerprint">self-signed</span>
+    <button class="icon-btn" id="theme" aria-label="Toggle theme" title="Toggle light / dark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+    </button>
+  </header>
+
+  <div class="grid">
+    <!-- ===== left: devices ===== -->
+    <section class="panel devices" aria-label="Connected devices">
+      <div class="panel-head">
+        <span class="panel-title">Devices</span>
+        <span class="count">4</span>
+      </div>
+      <div class="dev">
+        <div class="ava" style="background:#0E9E88">MP</div>
+        <div class="dev-meta">
+          <div class="dev-name">mandars-thinkpad <span class="tag-you">you · host</span></div>
+          <div class="dev-ip">192.168.43.1</div>
+        </div>
+        <span class="presence on" title="online"></span>
+      </div>
+      <div class="dev">
+        <div class="ava" style="background:#3B6FE0">P7</div>
+        <div class="dev-meta">
+          <div class="dev-name">pixel-7</div>
+          <div class="dev-ip">192.168.43.24</div>
+        </div>
+        <span class="presence on" title="online"></span>
+      </div>
+      <div class="dev">
+        <div class="ava" style="background:#C0603A">AR</div>
+        <div class="dev-meta">
+          <div class="dev-name">aarohi-iphone</div>
+          <div class="dev-ip">192.168.43.31</div>
+        </div>
+        <span class="presence on" title="online"></span>
+      </div>
+      <div class="dev">
+        <div class="ava" style="background:#7A57C2">TV</div>
+        <div class="dev-meta">
+          <div class="dev-name">living-room-tv</div>
+          <div class="dev-ip">192.168.43.40</div>
+        </div>
+        <span class="presence idle" title="idle"></span>
+      </div>
+    </section>
+
+    <!-- ===== center: chat / files ===== -->
+    <section class="panel center" aria-label="Chat and files">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-view="chat">chat</button>
+        <button class="tab" role="tab" aria-selected="false" data-view="files">files</button>
+      </div>
+
+      <!-- chat -->
+      <div class="view active" id="view-chat" role="tabpanel">
+        <div class="chat-log" id="log">
+          <div class="sys">— aarohi-iphone joined the hub —</div>
+          <div class="msg">
+            <div class="msg-head"><span class="msg-who" style="color:#3B6FE0">pixel-7</span><span class="msg-time">14:02</span></div>
+            <div class="bubble">anyone got the build for the demo? my copy crashes on launch</div>
+          </div>
+          <div class="msg me">
+            <div class="msg-head"><span class="msg-time">14:03</span><span class="msg-who" style="color:var(--accent-ink)">you</span></div>
+            <div class="bubble">dropping it in files now — grab servd-demo.zip</div>
+          </div>
+          <div class="msg">
+            <div class="msg-head"><span class="msg-who" style="color:#C0603A">aarohi-iphone</span><span class="msg-time">14:03</span></div>
+            <div class="bubble file-msg"><span class="fi"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg></span>shared <b>screenshots.zip</b> · 4.2 MB</div>
+          </div>
+          <div class="msg">
+            <div class="msg-head"><span class="msg-who" style="color:#3B6FE0">pixel-7</span><span class="msg-time">14:04</span></div>
+            <div class="bubble">got it, downloading over https now 🔒</div>
+          </div>
+          <div class="msg me">
+            <div class="msg-head"><span class="msg-time">14:05</span><span class="msg-who" style="color:var(--accent-ink)">you</span></div>
+            <div class="bubble">nice. ssh is up on :2222 too if you'd rather pull it that way</div>
+          </div>
+        </div>
+        <form class="composer" id="composer">
+          <button type="button" class="icon-btn" aria-label="Attach file">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 18.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
+          </button>
+          <input type="text" placeholder="Message the hub…  (encrypted over WSS)" aria-label="Message" />
+          <button class="send" type="submit">send
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- files -->
+      <div class="view" id="view-files" role="tabpanel">
+        <div class="files-wrap">
+          <label class="drop">
+            <span class="big"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></span>
+            <strong>Drag files here to share</strong>
+            <small>or click to browse · sent encrypted to every device on the hub</small>
+          </label>
+          <div class="flist">
+            <div class="frow">
+              <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg></span>
+              <div class="fmeta"><div class="fname">servd-demo.zip</div><div class="fsub">from you · 14:03</div></div>
+              <span class="fsize">18.4 MB</span>
+              <button class="dl" aria-label="Download servd-demo.zip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m0 0-4-4m4 4 4-4"/><path d="M5 20h14"/></svg></button>
+            </div>
+            <div class="frow">
+              <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg></span>
+              <div class="fmeta"><div class="fname">screenshots.zip</div><div class="fsub">from aarohi-iphone · 14:03</div></div>
+              <span class="fsize">4.2 MB</span>
+              <button class="dl" aria-label="Download screenshots.zip"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m0 0-4-4m4 4 4-4"/><path d="M5 20h14"/></svg></button>
+            </div>
+            <div class="frow">
+              <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg></span>
+              <div class="fmeta"><div class="fname">meeting-notes.md</div><div class="fsub">from pixel-7 · 13:58</div></div>
+              <span class="fsize">12 KB</span>
+              <button class="dl" aria-label="Download meeting-notes.md"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m0 0-4-4m4 4 4-4"/><path d="M5 20h14"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== right: host + servers ===== -->
+    <aside class="rail" aria-label="Host and servers">
+      <section class="panel host-card">
+        <div class="kv">
+          <span class="k">This host</span>
+          <span class="v">mandars-thinkpad</span>
+        </div>
+        <div class="kv">
+          <span class="k">Bound interface</span>
+          <span class="v">wlan0 · 192.168.43.1</span>
+        </div>
+        <div class="kv">
+          <span class="k">TLS fingerprint (SHA-256)</span>
+          <div class="fingerprint">
+            <span class="v" id="fp">9F:2C:1A:E4:7B:03:D8:66…</span>
+            <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Servers</span></div>
+
+        <div class="svc up">
+          <span class="svc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></span>
+          <div class="svc-meta">
+            <div class="svc-name">https <span class="lock" title="encrypted"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
+            <div class="svc-sub">:8443 · dashboard, files, chat · 3 connected</div>
+          </div>
+          <span class="svc-state st-up">up</span>
+          <label class="switch" title="Always on"><input type="checkbox" checked aria-label="https server"><span class="track"></span><span class="knob"></span></label>
+        </div>
+
+        <div class="svc up">
+          <span class="svc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M7 9l3 3-3 3M13 15h4"/></svg></span>
+          <div class="svc-meta">
+            <div class="svc-name">ssh <span class="lock" title="encrypted"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
+            <div class="svc-sub">:2222 · key + password auth</div>
+          </div>
+          <span class="svc-state st-up">up</span>
+          <label class="switch" title="Toggle ssh"><input type="checkbox" checked aria-label="ssh server"><span class="track"></span><span class="knob"></span></label>
+        </div>
+
+        <div class="svc">
+          <span class="svc-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="7" cy="7" r=".6" fill="currentColor"/></svg></span>
+          <div class="svc-meta">
+            <div class="svc-name">ftps <span class="lock" title="encrypted"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
+            <div class="svc-sub">:2121 · credentialed · TLS</div>
+          </div>
+          <span class="svc-state st-down">off</span>
+          <label class="switch" title="Toggle ftps"><input type="checkbox" aria-label="ftps server"><span class="track"></span><span class="knob"></span></label>
+        </div>
+
+        <div class="rail-note">
+          <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          Server toggles are visible on the host only — this panel is served on 127.0.0.1.
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="foot">servd · local-network server tool · everything on the wire is encrypted</div>
+</div>
+
+<script>
+  // theme toggle (previews both themes; system theme is the default)
+  const root = document.documentElement, tbtn = document.getElementById('theme');
+  tbtn.addEventListener('click', () => {
+    const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const cur = root.getAttribute('data-theme') || (isDark ? 'dark' : 'light');
+    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  });
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+      tab.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + tab.dataset.view).classList.add('active');
+    });
+  });
+
+  // demo chat send
+  const form = document.getElementById('composer'), log = document.getElementById('log');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = form.querySelector('input'), text = input.value.trim();
+    if (!text) return;
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const m = document.createElement('div'); m.className = 'msg me';
+    m.innerHTML = '<div class="msg-head"><span class="msg-time"></span><span class="msg-who" style="color:var(--accent-ink)">you</span></div><div class="bubble"></div>';
+    m.querySelector('.msg-time').textContent = now;
+    m.querySelector('.bubble').textContent = text;
+    log.appendChild(m); log.scrollTop = log.scrollHeight; input.value = '';
+  });
+
+  // service state chip follows toggle
+  document.querySelectorAll('.svc .switch input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const svc = cb.closest('.svc'), state = svc.querySelector('.svc-state');
+      svc.classList.toggle('up', cb.checked);
+      state.textContent = cb.checked ? 'up' : 'off';
+      state.className = 'svc-state ' + (cb.checked ? 'st-up' : 'st-down');
+    });
+  });
+
+  // copy fingerprint
+  document.getElementById('copyfp').addEventListener('click', () => {
+    navigator.clipboard && navigator.clipboard.writeText('9F:2C:1A:E4:7B:03:D8:66:...');
+  });
+</script>
