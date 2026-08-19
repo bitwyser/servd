@@ -53,6 +53,7 @@ Desktop.ini
 *.log
 *.tmp
 *.hprof
+.sock-tmp/
 
 # ---- Secrets / keystores (never commit) ----
 *.jks
