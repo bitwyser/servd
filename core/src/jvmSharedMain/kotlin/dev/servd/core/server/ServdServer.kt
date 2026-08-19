@@ -33,13 +33,16 @@ import io.ktor.websocket.readText
  */
 class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration>(
     engineFactory: ApplicationEngineFactory<TEngine, TConfiguration>,
+    /** Interface to listen on (e.g. "0.0.0.0" for all interfaces). */
     private val bindHost: String,
+    /** Address shown to users / used in the dashboard URL (e.g. the LAN IP). */
+    private val advertisedHost: String,
     val port: Int,
     private val tls: TlsKeyStore,
 ) {
-    val url: String get() = "https://$bindHost:$port"
+    val url: String get() = "https://$advertisedHost:$port"
 
-    private val chatHub = ChatHub(serverName = bindHost)
+    private val chatHub = ChatHub(serverName = advertisedHost)
 
     private val engine = embeddedServer(
         engineFactory,
