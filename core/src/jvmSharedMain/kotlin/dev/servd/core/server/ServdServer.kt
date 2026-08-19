@@ -1,0 +1,80 @@
+package dev.servd.core.server
+
+import dev.servd.core.Servd
+import dev.servd.core.tls.TlsKeyStore
+import io.ktor.http.ContentType
+import io.ktor.server.application.Application
+import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.engine.ApplicationEngineFactory
+import io.ktor.server.engine.applicationEnvironment
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.engine.sslConnector
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
+
+/**
+ * servd's single HTTPS server. Phase 1 serves the dashboard shell and a `/status` endpoint;
+ * later phases add WebSocket chat, presence, and file sharing on the same server.
+ *
+ * The routing/module and TLS wiring here are engine-agnostic; the concrete Ktor engine is
+ * passed in by each platform — Netty on desktop (Ktor CIO does not support server HTTPS).
+ * Lives in `jvmSharedMain` so the same server logic runs on desktop now and Android later.
+ */
+class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration>(
+    engineFactory: ApplicationEngineFactory<TEngine, TConfiguration>,
+    private val bindHost: String,
+    val port: Int,
+    private val tls: TlsKeyStore,
+) {
+    val url: String get() = "https://$bindHost:$port"
+
+    private val engine = embeddedServer(
+        engineFactory,
+        applicationEnvironment { },
+        configure = {
+            sslConnector(
+                keyStore = tls.keyStore,
+                keyAlias = tls.alias,
+                keyStorePassword = { tls.keyStorePassword },
+                privateKeyPassword = { tls.privateKeyPassword },
+            ) {
+                host = bindHost
+                port = this@ServdServer.port
+            }
+        },
+        module = { servdModule() },
+    )
+
+    fun start(wait: Boolean) {
+        engine.start(wait)
+    }
+
+    fun stop() {
+        engine.stop(gracePeriodMillis = 300, timeoutMillis = 1500)
+    }
+
+    private fun Application.servdModule() {
+        routing {
+            // Machine-readable status — includes the cert fingerprint for verification.
+            get("/status") {
+                val json = buildString {
+                    append('{')
+                    append("\"name\":\"").append(Servd.NAME).append("\",")
+                    append("\"version\":\"").append(Servd.VERSION).append("\",")
+                    append("\"address\":\"").append(bindHost).append("\",")
+                    append("\"port\":").append(port).append(',')
+                    append("\"tls\":\"self-signed\",")
+                    append("\"fingerprintSha256\":\"").append(tls.fingerprintSha256).append('"')
+                    append('}')
+                }
+                call.respondText(json, ContentType.Application.Json)
+            }
+            // The served dashboard shell (webui/ resources), default document index.html.
+            staticResources("/", "webui") {
+                default("index.html")
+            }
+        }
+    }
+}

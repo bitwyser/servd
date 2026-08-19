@@ -25,10 +25,16 @@ kotlin {
             }
         }
 
-        // Plain-JVM code (e.g. java.net enumeration) shared by BOTH JVM targets —
-        // Android and desktop. This is the "jvmShared" intermediate from the plan.
+        // Plain-JVM code (e.g. java.net enumeration, the Ktor server) shared by BOTH
+        // JVM targets — Android and desktop. This is the "jvmShared" intermediate.
         val jvmSharedMain by creating {
             dependsOn(commonMain)
+            dependencies {
+                // Engine-agnostic Ktor server (routing, TLS material). The concrete engine
+                // (Netty on desktop, TBD on Android) is provided by each platform module.
+                implementation(libs.ktor.server.core)
+                implementation(libs.ktor.network.tls.certificates)
+            }
         }
         val androidMain by getting {
             dependsOn(jvmSharedMain)

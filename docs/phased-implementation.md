@@ -81,7 +81,10 @@ credentials → list/transfer works; disable → refused.
 ### Phase 8 — Android host shell (flesh out)
 **Build:** grow the `androidApp` from Phase 0.5 into the real host — foreground service hosting
 `core`, one control screen (Start/Stop, show URL/IP + fingerprint, Open dashboard), required
-permissions, Android `NsdManager` for mDNS.
+permissions, Android `NsdManager` for mDNS. **Resolve the Android HTTPS engine** (Ktor CIO can't
+serve HTTPS, and Netty-on-Android is heavy) — candidates: Netty-on-Android, a JSSE TLS-terminating
+front socket in front of a plaintext engine, or NanoHTTPD-SSL. `ServdServer` is already generic
+over the engine factory, so only the engine + connector differ per platform.
 **Verify:** install APK → tap Start → phone hotspot becomes the hub → another device opens the
 same dashboard, chats, and shares files against the phone.
 **Commit:** `feat: android host app (foreground service + control screen)`

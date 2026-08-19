@@ -10,7 +10,7 @@
 |---|---|
 | Language / build | Kotlin Multiplatform, Gradle (Kotlin DSL) + version catalog (`libs.versions.toml`) |
 | Targets | `androidTarget()`, `jvm("desktop")` |
-| HTTP/S + WebSocket | **Ktor** (CIO engine) — one server for dashboard, files, chat, presence |
+| HTTP/S + WebSocket | **Ktor** — one server for dashboard, files, chat, presence. Engine: **Netty** on desktop (Ktor CIO does not support server-side HTTPS); Android engine TBD in Phase 8 |
 | SSH server | Apache MINA SSHD (optional module) |
 | FTP server | Apache FtpServer, FTPS (optional module) |
 | Serialization / async | kotlinx.serialization, kotlinx.coroutines |

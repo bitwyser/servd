@@ -3,6 +3,8 @@ kotlin = "2.1.0"
 agp = "8.7.3"
 coroutines = "1.9.0"
 kotlinx-serialization = "1.7.3"
+ktor = "3.0.3"
+slf4j = "2.0.16"
 jvmTarget = "17"
 android-compileSdk = "35"
 android-minSdk = "24"
@@ -11,6 +13,10 @@ android-targetSdk = "35"
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-network-tls-certificates = { module = "io.ktor:ktor-network-tls-certificates", version.ref = "ktor" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

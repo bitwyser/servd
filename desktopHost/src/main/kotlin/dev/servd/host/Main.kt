@@ -1,40 +1,85 @@
 package dev.servd.host
 
 import dev.servd.core.Servd
-import dev.servd.core.net.LanAddressSelector
 import dev.servd.core.net.detectLanAddress
-import dev.servd.core.net.enumerateAddresses
+import dev.servd.core.server.ServdServer
+import dev.servd.core.tls.ServdCertificates
+import io.ktor.server.netty.Netty
+import java.awt.Desktop
+import java.io.File
+import java.net.URI
 
 /**
- * Phase 0 entrypoint: prove the toolchain and the shared LAN-detection logic.
- * Prints the banner, the chosen bind address, and every candidate interface.
- * Real servers arrive in Phase 1.
+ * Phase 1 entrypoint: start servd's HTTPS server bound to the LAN address, generate/persist a
+ * self-signed cert, print its fingerprint, and open the dashboard.
+ *
+ *   servd [start] [--port N] [--host IP] [--dir PATH] [--no-open]
  */
-fun main() {
+fun main(args: Array<String>) {
+    val opts = Opts.parse(args)
+
+    val lan = detectLanAddress()
+    val bindHost = opts.host ?: lan?.ip ?: "127.0.0.1"
+    val dataDir = File(opts.dir ?: (System.getProperty("user.home") + File.separator + ".servd"))
+
     println("${Servd.NAME} v${Servd.VERSION} - ${Servd.TAGLINE}")
-    println("java ${System.getProperty("java.version")} | ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
-    println()
-
-    val candidates = enumerateAddresses().filter(LanAddressSelector::isCandidate)
-    val chosen = detectLanAddress()
-
-    if (chosen != null) {
-        println("LAN address : ${chosen.ip}  (${chosen.interfaceName})")
-        println("dashboard   : https://${chosen.ip}:8443   (coming in Phase 1)")
-    } else {
-        println("LAN address : none found - connect to Wi-Fi or start a hotspot, then retry")
+    if (opts.host == null && lan == null) {
+        println("(no LAN address found - binding to 127.0.0.1; connect Wi-Fi/hotspot for network access)")
     }
 
+    val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(bindHost, lan?.ip))
+    val server = ServdServer(Netty, bindHost, opts.port, tls)
+
     println()
-    println("candidates (${candidates.size}):")
-    if (candidates.isEmpty()) {
-        println("  (none)")
-    } else {
-        candidates
-            .sortedByDescending(LanAddressSelector::score)
-            .forEach { a ->
-                val marker = if (a == chosen) ">" else " "
-                println("  $marker ${a.ip.padEnd(16)} ${a.interfaceName}")
+    println("serving : ${server.url}")
+    println("cert    : self-signed, SHA-256 fingerprint:")
+    println("          ${tls.fingerprintSha256}")
+    println("keystore: ${tls.file}")
+    println()
+    println("Open that URL on any device on this network. The browser will warn about the")
+    println("self-signed certificate - that's expected; verify the fingerprint above, then proceed.")
+    println("Press Ctrl+C to stop.")
+
+    if (!opts.noOpen) openBrowserSoon(opts.port)
+
+    server.start(wait = true)
+}
+
+private fun openBrowserSoon(port: Int) {
+    Thread {
+        runCatching {
+            Thread.sleep(900)
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(URI("https://127.0.0.1:$port/"))
             }
+        }
+    }.apply { isDaemon = true }.start()
+}
+
+private data class Opts(
+    val port: Int = 8443,
+    val host: String? = null,
+    val dir: String? = null,
+    val noOpen: Boolean = false,
+) {
+    companion object {
+        fun parse(args: Array<String>): Opts {
+            var port = 8443
+            var host: String? = null
+            var dir: String? = null
+            var noOpen = false
+            var i = 0
+            while (i < args.size) {
+                when (args[i]) {
+                    "start" -> {} // optional verb
+                    "--port" -> port = args.getOrNull(++i)?.toIntOrNull() ?: port
+                    "--host" -> host = args.getOrNull(++i)
+                    "--dir" -> dir = args.getOrNull(++i)
+                    "--no-open" -> noOpen = true
+                }
+                i++
+            }
+            return Opts(port, host, dir, noOpen)
+        }
     }
 }
