@@ -1,0 +1,63 @@
+# ---- Gradle ----
+.gradle/
+build/
+**/build/
+!src/**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+.gradletasknamecache
+
+# ---- Kotlin / KMP ----
+.kotlin/
+*.klib
+
+# ---- Android ----
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+captures/
+.cxx/
+release/
+
+# ---- jpackage / desktop packaging output ----
+/packaging/
+*.dmg
+*.pkg
+*.msi
+*.exe
+*.deb
+*.rpm
+
+# ---- IntelliJ / Android Studio ----
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.run/
+
+# ---- VS Code ----
+.vscode/
+
+# ---- macOS / Windows / Linux cruft ----
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+
+# ---- Logs & temp ----
+*.log
+*.tmp
+*.hprof
+
+# ---- Secrets / keystores (never commit) ----
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+*.env
+.env
