@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -18,7 +19,11 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.serialization.json)
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
@@ -33,6 +38,7 @@ kotlin {
                 // Engine-agnostic Ktor server (routing, TLS material). The concrete engine
                 // (Netty on desktop, TBD on Android) is provided by each platform module.
                 implementation(libs.ktor.server.core)
+                implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.network.tls.certificates)
             }
         }

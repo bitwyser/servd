@@ -1,18 +1,27 @@
 package dev.servd.core.server
 
 import dev.servd.core.Servd
+import dev.servd.core.chat.ChatHub
+import dev.servd.core.chat.ChatSend
+import dev.servd.core.chat.Hello
 import dev.servd.core.tls.TlsKeyStore
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.ApplicationEngineFactory
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.http.content.staticResources
+import io.ktor.server.plugins.origin
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 
 /**
  * servd's single HTTPS server. Phase 1 serves the dashboard shell and a `/status` endpoint;
@@ -29,6 +38,8 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val tls: TlsKeyStore,
 ) {
     val url: String get() = "https://$bindHost:$port"
+
+    private val chatHub = ChatHub(serverName = bindHost)
 
     private val engine = embeddedServer(
         engineFactory,
@@ -56,7 +67,26 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     }
 
     private fun Application.servdModule() {
+        install(WebSockets)
         routing {
+            // Real-time chat + presence. Clients connect, say hello (name), then exchange chat.
+            webSocket("/ws") {
+                val address = call.request.origin.remoteAddress // raw IP, no reverse-DNS
+                val id = chatHub.onConnect(this, address)
+                try {
+                    for (frame in incoming) {
+                        if (frame is Frame.Text) {
+                            when (val msg = chatHub.parseClient(frame.readText())) {
+                                is Hello -> chatHub.onHello(id, msg.name)
+                                is ChatSend -> chatHub.onChat(id, msg.text)
+                                null -> {}
+                            }
+                        }
+                    }
+                } finally {
+                    chatHub.onDisconnect(id)
+                }
+            }
             // Machine-readable status — includes the cert fingerprint for verification.
             get("/status") {
                 val json = buildString {
