@@ -149,6 +149,7 @@
 
   /* ---------- right rail ---------- */
   .rail { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; min-height: 0; }
+  .rail[hidden] { display: none; } /* class rule would otherwise override the hidden attribute */
   .svc-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .svc-panel #svcList { flex: 1; min-height: 0; overflow-y: auto; }
   .host-card { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
