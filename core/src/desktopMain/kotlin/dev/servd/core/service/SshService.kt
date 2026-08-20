@@ -3,6 +3,7 @@ package dev.servd.core.service
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory
+import org.apache.sshd.common.io.nio2.Nio2ServiceFactoryFactory
 import org.apache.sshd.server.SshServer
 import org.apache.sshd.server.auth.password.PasswordAuthenticator
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
@@ -39,6 +40,9 @@ class SshService(
             filesDir.mkdirs()
             val ssh = SshServer.setUpDefaultServer().apply {
                 port = this@SshService.port
+                // Give each server instance its own NIO factory so stopping it shuts down only
+                // its own executor - the shared default one breaks a later restart.
+                ioServiceFactoryFactory = Nio2ServiceFactoryFactory()
                 keyPairProvider = SimpleGeneratorHostKeyProvider(hostKeyFile.toPath())
                 passwordAuthenticator = PasswordAuthenticator { user, pass, _ ->
                     user == username && pass == password

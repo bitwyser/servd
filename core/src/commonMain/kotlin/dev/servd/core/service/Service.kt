@@ -1,5 +1,7 @@
 package dev.servd.core.service
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 
 enum class ServiceState { Stopped, Starting, Running, Error }
@@ -39,6 +41,10 @@ fun Service.toInfo(): ServiceInfo = ServiceInfo(id, label, port, toggleable, sta
 class ServiceManager(services: List<Service>) {
     private val byId = LinkedHashMap<String, Service>()
 
+    // Serialize all start/stop operations so a double-tap on a toggle can't start a service
+    // twice (or race a start against a stop).
+    private val lock = Mutex()
+
     init {
         services.forEach { byId[it.id] = it }
     }
@@ -48,18 +54,18 @@ class ServiceManager(services: List<Service>) {
     fun get(id: String): Service? = byId[id]
 
     /** Start a toggleable service. Returns false for unknown or non-toggleable ids. */
-    suspend fun start(id: String): Boolean {
-        val service = byId[id] ?: return false
-        if (!service.toggleable) return false
+    suspend fun start(id: String): Boolean = lock.withLock {
+        val service = byId[id] ?: return@withLock false
+        if (!service.toggleable) return@withLock false
         service.start()
-        return true
+        true
     }
 
     /** Stop a toggleable service. Returns false for unknown or non-toggleable ids. */
-    suspend fun stop(id: String): Boolean {
-        val service = byId[id] ?: return false
-        if (!service.toggleable) return false
+    suspend fun stop(id: String): Boolean = lock.withLock {
+        val service = byId[id] ?: return@withLock false
+        if (!service.toggleable) return@withLock false
         service.stop()
-        return true
+        true
     }
 }
