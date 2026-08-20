@@ -47,6 +47,19 @@ class FileStore(private val dir: File) {
         return meta to file
     }
 
+    /** Delete one file (bytes + metadata). Returns its metadata, or null if unknown. */
+    fun remove(id: String): FileMeta? {
+        val meta = metas.remove(id) ?: return null
+        runCatching { File(dir, id).delete() }
+        return meta
+    }
+
+    /** Delete every shared file. */
+    fun clear() {
+        metas.keys.toList().forEach { id -> runCatching { File(dir, id).delete() } }
+        metas.clear()
+    }
+
     /** Strip any path components so a crafted upload name can't escape the display. */
     private fun sanitizeName(name: String): String =
         name.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }.take(120)

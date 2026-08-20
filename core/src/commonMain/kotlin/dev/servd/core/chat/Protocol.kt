@@ -27,6 +27,10 @@ data class Hello(val name: String) : ClientMessage
 data class ChatSend(val text: String) : ClientMessage
 
 @Serializable
+@SerialName("clearChat")
+data object ClearChat : ClientMessage
+
+@Serializable
 sealed interface ServerMessage
 
 @Serializable
@@ -69,3 +73,18 @@ data class FileMeta(
 @Serializable
 @SerialName("file")
 data class FileShared(val file: FileMeta) : ServerMessage
+
+/** Broadcast when someone clears the chat, so every dashboard wipes its log. */
+@Serializable
+@SerialName("chatCleared")
+data class ChatCleared(val byName: String) : ServerMessage
+
+/** Broadcast when a single shared file is deleted. */
+@Serializable
+@SerialName("fileRemoved")
+data class FileRemoved(val id: String) : ServerMessage
+
+/** Broadcast when all shared files are deleted. */
+@Serializable
+@SerialName("filesCleared")
+data class FilesCleared(val byName: String) : ServerMessage

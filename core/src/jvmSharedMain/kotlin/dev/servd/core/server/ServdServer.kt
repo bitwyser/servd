@@ -3,6 +3,7 @@ package dev.servd.core.server
 import dev.servd.core.Servd
 import dev.servd.core.chat.ChatHub
 import dev.servd.core.chat.ChatSend
+import dev.servd.core.chat.ClearChat
 import dev.servd.core.chat.FileMeta
 import dev.servd.core.chat.Hello
 import dev.servd.core.files.FileStore
@@ -32,6 +33,7 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
@@ -116,6 +118,7 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                             when (val msg = chatHub.parseClient(frame.readText())) {
                                 is Hello -> chatHub.onHello(id, msg.name)
                                 is ChatSend -> chatHub.onChat(id, msg.text)
+                                is ClearChat -> chatHub.onClearChat(id)
                                 null -> {}
                             }
                         }
@@ -188,6 +191,21 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                         .toString(),
                 )
                 call.respondFile(file)
+            }
+            delete("/files/{id}") {
+                val removed = call.parameters["id"]?.let { fileStore.remove(it) }
+                if (removed == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                } else {
+                    chatHub.announceFileRemoved(removed.id)
+                    call.respond(HttpStatusCode.OK)
+                }
+            }
+            delete("/files") {
+                val from = call.request.queryParameters["from"]?.take(40)?.ifBlank { "someone" } ?: "someone"
+                fileStore.clear()
+                chatHub.announceFilesCleared(from)
+                call.respond(HttpStatusCode.OK)
             }
             // Host-only admin API: reachable from loopback (the host machine) only, so LAN
             // devices can use the dashboard but cannot reconfigure the server.

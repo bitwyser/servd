@@ -75,6 +75,20 @@ class ChatHub(private val serverName: String) {
         broadcast(FileShared(meta))
     }
 
+    /** Clear the chat for everyone (chat is not stored server-side; this wipes live logs). */
+    suspend fun onClearChat(id: String) {
+        val name = conns[id]?.name ?: return
+        broadcast(ChatCleared(name))
+    }
+
+    suspend fun announceFileRemoved(id: String) {
+        broadcast(FileRemoved(id))
+    }
+
+    suspend fun announceFilesCleared(byName: String) {
+        broadcast(FilesCleared(byName))
+    }
+
     /** Parse an inbound client frame; null if it isn't a valid message. */
     fun parseClient(text: String): ClientMessage? =
         try { json.decodeFromString<ClientMessage>(text) } catch (_: Exception) { null }
