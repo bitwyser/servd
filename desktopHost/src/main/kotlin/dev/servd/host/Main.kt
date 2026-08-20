@@ -74,10 +74,10 @@ fun main(args: Array<String>) {
     val localUrl = if (bindHost == "0.0.0.0") "https://127.0.0.1:${opts.port}/" else server.url
 
     println()
-    println("serving : ${server.url}   (share with other devices)")
     if (bindHost == "0.0.0.0") {
         println("admin   : https://127.0.0.1:${opts.port}   (this machine only)")
     }
+    println("serving : ${server.url}   (share with other devices)")
     println("cert    : self-signed, SHA-256 fingerprint:")
     println("          ${tls.fingerprintSha256}")
     println("keystore: ${tls.file}")
