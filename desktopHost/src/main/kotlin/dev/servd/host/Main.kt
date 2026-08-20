@@ -1,24 +1,32 @@
 package dev.servd.host
 
 import dev.servd.core.Servd
+import dev.servd.core.discovery.MdnsAdvertiser
+import dev.servd.core.discovery.MdnsBrowser
 import dev.servd.core.net.detectLanAddress
 import dev.servd.core.server.ServdServer
 import dev.servd.core.tls.ServdCertificates
 import io.ktor.server.netty.Netty
 import java.awt.Desktop
 import java.io.File
+import java.net.InetAddress
 import java.net.URI
 
 /**
- * Phase 1 entrypoint: start servd's HTTPS server bound to the LAN address, generate/persist a
- * self-signed cert, print its fingerprint, and open the dashboard.
+ * servd desktop entrypoint.
  *
- *   servd [start] [--port N] [--host IP] [--dir PATH] [--no-open]
+ *   servd [start] [--port N] [--host IP] [--dir PATH] [--no-open]   start the hub
+ *   servd discover                                                  find hubs on the network
  */
 fun main(args: Array<String>) {
     // Quiet the benign Netty TLS-handshake warnings logged when a browser declines the
     // self-signed cert before the user clicks "proceed". Set before any logging happens.
     System.setProperty("org.slf4j.simpleLogger.log.io.netty", "error")
+
+    if (args.firstOrNull() == "discover") {
+        runDiscover()
+        return
+    }
 
     val opts = Opts.parse(args)
 
@@ -43,14 +51,49 @@ fun main(args: Array<String>) {
     println("          ${tls.fingerprintSha256}")
     println("keystore: ${tls.file}")
     println()
+    // Advertise over mDNS so other devices can find this hub without typing an IP.
+    val advertiser = MdnsAdvertiser()
+    val advertised = runCatching {
+        advertiser.start(
+            bindAddress = InetAddress.getByName(advertisedHost),
+            instanceName = "servd@" + hostName(),
+            port = opts.port,
+            txt = mapOf(
+                "version" to Servd.VERSION,
+                "fingerprint" to tls.fingerprintSha256,
+                "https" to "true",
+                "path" to "/",
+            ),
+        )
+    }.isSuccess
+    Runtime.getRuntime().addShutdownHook(Thread { advertiser.stop(); server.stop() })
+
     println("Open that URL on any device on this network. The browser will warn about the")
     println("self-signed certificate - that's expected; verify the fingerprint above, then proceed.")
+    if (advertised) println("discovery: advertising _servd._tcp - other devices can run `servd discover`.")
     println("Press Ctrl+C to stop.")
 
     if (!opts.noOpen) openBrowserSoon(server.url)
 
     server.start(wait = true)
 }
+
+private fun runDiscover() {
+    println("${Servd.NAME} - searching for hubs on the local network (~3s)...")
+    val lan = detectLanAddress()
+    val bind = runCatching { lan?.ip?.let { InetAddress.getByName(it) } }.getOrNull()
+    val hubs = runCatching { MdnsBrowser().discover(durationMillis = 3000, bindAddress = bind) }.getOrDefault(emptyList())
+    println()
+    if (hubs.isEmpty()) {
+        println("No servd hubs found. Make sure a hub is running on this network.")
+    } else {
+        println("Found ${hubs.size} hub(s):")
+        hubs.forEach { println("  ${it.url}   ${it.name}   v${it.version ?: "?"}") }
+    }
+}
+
+private fun hostName(): String =
+    runCatching { InetAddress.getLocalHost().hostName }.getOrNull()?.substringBefore('.') ?: "host"
 
 private fun openBrowserSoon(url: String) {
     Thread {

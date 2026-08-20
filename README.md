@@ -20,6 +20,7 @@ domain on a LAN, so you verify the connection by its **fingerprint** instead of 
 - **Real-time chat** between everyone connected (over WSS)
 - **Connected-device roster** - see who's on the hub, live, with join/leave
 - **Drag-n-drop file sharing** - drop a file, it appears on every device instantly, download intact
+- **Auto-discovery (mDNS)** - the hub advertises itself; `servd discover` finds hubs without typing an IP
 - **Self-signed TLS** with a printed **SHA-256 fingerprint** you can verify
 - **`/status`** JSON endpoint (version, address, fingerprint)
 - **CLI** to start it and auto-open the dashboard
@@ -161,6 +162,12 @@ run.bat :desktopHost:run "--args=--port 9443 --no-open"
 | `--dir PATH` | Where the keystore lives | `~/.servd` |
 | `--no-open` | Don't auto-open the browser | (opens) |
 
+Find running hubs on the network (no IP needed):
+
+```bash
+run.bat :desktopHost:run "--args=discover"
+```
+
 Run other Gradle tasks the same way, e.g. tests: `run.bat :core:desktopTest`.
 
 ---
@@ -238,8 +245,8 @@ Built in self-contained phases; each is independently runnable.
 | 1 | HTTPS server, self-signed TLS, dashboard shell, CLI | ✅ |
 | 2 | Real-time chat + connected-device roster | ✅ |
 | 3 | Drag-n-drop file sharing | ✅ |
-| 4 | mDNS auto-discovery of hubs | ▫️ next |
-| 5 | Service manager + host-only admin panel | ▫️ |
+| 4 | mDNS auto-discovery of hubs | ✅ |
+| 5 | Service manager + host-only admin panel | ▫️ next |
 | 6 | Optional SSH server | ▫️ |
 | 7 | Optional FTPS server | ▫️ |
 | 8 | Android host app (foreground service, real UI) | ▫️ |

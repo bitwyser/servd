@@ -47,6 +47,10 @@ kotlin {
         }
         val desktopMain by getting {
             dependsOn(jvmSharedMain)
+            dependencies {
+                // mDNS advertisement/discovery on desktop (Android uses NsdManager in Phase 8).
+                implementation(libs.jmdns)
+            }
         }
     }
 }
