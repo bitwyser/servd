@@ -45,8 +45,15 @@ fun main(args: Array<String>) {
     val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(advertisedHost, lan?.ip))
     val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls, File(dataDir, "files"))
 
+    // When bound to all interfaces, the host reaches admin via loopback; a specific --host
+    // means admin is only available if that host is itself loopback.
+    val localUrl = if (bindHost == "0.0.0.0") "https://127.0.0.1:${opts.port}/" else server.url
+
     println()
-    println("serving : ${server.url}")
+    println("serving : ${server.url}   (share with other devices)")
+    if (bindHost == "0.0.0.0") {
+        println("admin   : https://127.0.0.1:${opts.port}   (this machine only)")
+    }
     println("cert    : self-signed, SHA-256 fingerprint:")
     println("          ${tls.fingerprintSha256}")
     println("keystore: ${tls.file}")
@@ -73,7 +80,7 @@ fun main(args: Array<String>) {
     if (advertised) println("discovery: advertising _servd._tcp - other devices can run `servd discover`.")
     println("Press Ctrl+C to stop.")
 
-    if (!opts.noOpen) openBrowserSoon(server.url)
+    if (!opts.noOpen) openBrowserSoon(localUrl)
 
     server.start(wait = true)
 }

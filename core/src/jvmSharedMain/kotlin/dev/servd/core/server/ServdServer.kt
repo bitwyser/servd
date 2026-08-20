@@ -6,7 +6,10 @@ import dev.servd.core.chat.ChatSend
 import dev.servd.core.chat.FileMeta
 import dev.servd.core.chat.Hello
 import dev.servd.core.files.FileStore
+import dev.servd.core.service.HttpService
+import dev.servd.core.service.ServiceManager
 import dev.servd.core.tls.TlsKeyStore
+import io.ktor.server.application.ApplicationCall
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -30,6 +33,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import java.net.InetAddress
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.utils.io.jvm.javaio.toInputStream
@@ -62,6 +66,7 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
 
     private val chatHub = ChatHub(serverName = advertisedHost)
     private val fileStore = FileStore(filesDir)
+    private val serviceManager = ServiceManager(listOf(HttpService(port)))
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
     private val engine = embeddedServer(
@@ -166,6 +171,30 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                 )
                 call.respondFile(file)
             }
+            // Host-only admin API: reachable from loopback (the host machine) only, so LAN
+            // devices can use the dashboard but cannot reconfigure the server.
+            get("/admin/services") {
+                if (!call.isLoopbackClient()) return@get call.respond(HttpStatusCode.Forbidden)
+                call.respondText(json.encodeToString(serviceManager.list()), ContentType.Application.Json)
+            }
+            post("/admin/services/{id}/start") {
+                if (!call.isLoopbackClient()) return@post call.respond(HttpStatusCode.Forbidden)
+                val ok = call.parameters["id"]?.let { serviceManager.start(it) } ?: false
+                call.respondText(
+                    json.encodeToString(serviceManager.list()),
+                    ContentType.Application.Json,
+                    status = if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest,
+                )
+            }
+            post("/admin/services/{id}/stop") {
+                if (!call.isLoopbackClient()) return@post call.respond(HttpStatusCode.Forbidden)
+                val ok = call.parameters["id"]?.let { serviceManager.stop(it) } ?: false
+                call.respondText(
+                    json.encodeToString(serviceManager.list()),
+                    ContentType.Application.Json,
+                    status = if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest,
+                )
+            }
             // The served dashboard shell (webui/ resources), default document index.html.
             staticResources("/", "webui") {
                 default("index.html")
@@ -173,3 +202,8 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
         }
     }
 }
+
+/** True only when the request came from this machine (loopback), gating the admin API. */
+private fun ApplicationCall.isLoopbackClient(): Boolean =
+    runCatching { InetAddress.getByName(request.origin.remoteAddress).isLoopbackAddress }
+        .getOrDefault(false)
