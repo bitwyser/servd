@@ -3,9 +3,16 @@ package dev.servd.core.server
 import dev.servd.core.Servd
 import dev.servd.core.chat.ChatHub
 import dev.servd.core.chat.ChatSend
+import dev.servd.core.chat.FileMeta
 import dev.servd.core.chat.Hello
+import dev.servd.core.files.FileStore
 import dev.servd.core.tls.TlsKeyStore
+import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.ApplicationEngine
@@ -15,13 +22,22 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.receiveMultipart
+import io.ktor.server.response.header
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
 
 /**
  * servd's single HTTPS server. Phase 1 serves the dashboard shell and a `/status` endpoint;
@@ -39,10 +55,14 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val advertisedHost: String,
     val port: Int,
     private val tls: TlsKeyStore,
+    /** Directory where shared files are stored. */
+    filesDir: File,
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
     private val chatHub = ChatHub(serverName = advertisedHost)
+    private val fileStore = FileStore(filesDir)
+    private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
     private val engine = embeddedServer(
         engineFactory,
@@ -103,6 +123,48 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                     append('}')
                 }
                 call.respondText(json, ContentType.Application.Json)
+            }
+            // File sharing: upload (multipart), list (newest first), download (by id).
+            post("/files") {
+                val multipart = call.receiveMultipart()
+                var from = "someone"
+                val saved = mutableListOf<FileMeta>()
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FormItem ->
+                            if (part.name == "from") from = part.value.take(40).ifBlank { "someone" }
+                        is PartData.FileItem -> {
+                            val name = part.originalFileName ?: "file"
+                            val contentType = part.contentType?.toString()
+                            val meta = part.provider().toInputStream().use {
+                                fileStore.save(name, contentType, from, it)
+                            }
+                            chatHub.announceFile(meta)
+                            saved += meta
+                        }
+                        else -> {}
+                    }
+                    part.dispose()
+                }
+                call.respondText(json.encodeToString(saved), ContentType.Application.Json)
+            }
+            get("/files") {
+                call.respondText(json.encodeToString(fileStore.list()), ContentType.Application.Json)
+            }
+            get("/files/{id}") {
+                val entry = call.parameters["id"]?.let { fileStore.get(it) }
+                if (entry == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@get
+                }
+                val (meta, file) = entry
+                call.response.header(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.Attachment
+                        .withParameter(ContentDisposition.Parameters.FileName, meta.name)
+                        .toString(),
+                )
+                call.respondFile(file)
             }
             // The served dashboard shell (webui/ resources), default document index.html.
             staticResources("/", "webui") {

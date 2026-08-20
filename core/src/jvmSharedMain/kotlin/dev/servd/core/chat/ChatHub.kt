@@ -67,6 +67,11 @@ class ChatHub(private val serverName: String) {
         broadcastRoster()
     }
 
+    /** Broadcast that a file was shared, so every connected dashboard updates live. */
+    suspend fun announceFile(meta: FileMeta) {
+        broadcast(FileShared(meta))
+    }
+
     /** Parse an inbound client frame; null if it isn't a valid message. */
     fun parseClient(text: String): ClientMessage? =
         try { json.decodeFromString<ClientMessage>(text) } catch (_: Exception) { null }

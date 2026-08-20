@@ -51,7 +51,17 @@
   .tag-you { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
   .empty { padding: 18px 16px; font-family: var(--mono); font-size: 12px; color: var(--faint); line-height: 1.5; }
 
-  section.chat { display: flex; flex-direction: column; min-height: 0; }
+  .content { display: flex; flex-direction: column; min-height: 0; }
+  .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .tab { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--muted); background: transparent; border: 0; cursor: pointer; padding: 9px 14px; border-radius: 8px 8px 0 0; position: relative; }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--accent-ink); }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px; }
+  .tab .badge { font-family: var(--mono); font-size: 10px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 20px; padding: 0 6px; margin-left: 6px; }
+
+  .view { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .view.active { display: flex; }
+
   .log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
   .msg { display: flex; flex-direction: column; gap: 2px; max-width: 80%; }
   .msg.me { align-self: flex-end; align-items: flex-end; }
@@ -60,7 +70,7 @@
   .mtime { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
   .bubble { background: var(--surface-2); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px 12px 12px 12px; font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
   .msg.me .bubble { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 26%, transparent); border-radius: 12px 4px 12px 12px; }
-  .sys { align-self: center; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .sys { align-self: center; font-family: var(--mono); font-size: 11px; color: var(--faint); text-align: center; }
 
   .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--surface); }
   .composer input { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 11px 13px; color: var(--ink); font-family: var(--sans); font-size: 14px; }
@@ -68,16 +78,34 @@
   .composer button { background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 0 18px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; }
   .composer button:disabled { opacity: .5; cursor: not-allowed; }
 
+  .files-wrap { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .drop { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
+    border: 1.5px dashed var(--border); border-radius: 12px; padding: 26px; color: var(--muted); background: var(--surface); }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--ink); background: var(--surface-2); }
+  .drop strong { font-family: var(--mono); font-weight: 700; color: var(--ink); }
+  .drop small { font-family: var(--mono); color: var(--faint); }
+  .drop .up { color: var(--accent); font-size: 22px; line-height: 1; }
+  .flist { display: flex; flex-direction: column; gap: 8px; }
+  .frow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+  .ficon { width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .fmeta { flex: 1; min-width: 0; }
+  .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fsub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .fsize { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); text-decoration: none; font-size: 16px; }
+  .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 8px; }
+
   @media (max-width: 720px) {
     main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    aside { border-right: 0; border-bottom: 1px solid var(--border); max-height: 34vh; }
+    aside { border-right: 0; border-bottom: 1px solid var(--border); max-height: 30vh; }
   }
 </style>
 </head>
 <body>
   <header>
     <div class="brand"><span class="prompt">~/</span>servd</div>
-    <span class="conn"><span class="dot" id="connDot"></span><span id="connText">connecting…</span></span>
+    <span class="conn"><span class="dot" id="connDot"></span><span id="connText">connecting...</span></span>
     <span class="spacer"></span>
     <div class="namebox">
       <label for="name">you</label>
@@ -90,12 +118,32 @@
       <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
       <div class="roster" id="roster"></div>
     </aside>
-    <section class="chat">
-      <div class="log" id="log"></div>
-      <form class="composer" id="composer" autocomplete="off">
-        <input id="text" placeholder="Message the hub…  (encrypted over WSS)" autocomplete="off" />
-        <button type="submit" id="send" disabled>send</button>
-      </form>
+
+    <section class="content">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-view="chat" aria-selected="true">chat</button>
+        <button class="tab" role="tab" data-view="files" aria-selected="false">files<span class="badge" id="fbadge" style="display:none">0</span></button>
+      </div>
+
+      <div class="view active" id="view-chat" role="tabpanel">
+        <div class="log" id="log"></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="text" placeholder="Message the hub...  (encrypted over WSS)" autocomplete="off" />
+          <button type="submit" id="send" disabled>send</button>
+        </form>
+      </div>
+
+      <div class="view" id="view-files" role="tabpanel">
+        <div class="files-wrap">
+          <label class="drop" id="drop">
+            <input type="file" id="fileInput" multiple hidden />
+            <span class="up">&#8593;</span>
+            <strong>Drag files here to share</strong>
+            <small>or click to browse - sent to every device on the hub</small>
+          </label>
+          <div class="flist" id="flist"><div class="files-empty">No files shared yet.</div></div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -105,23 +153,30 @@
   const log = $("log"), roster = $("roster"), count = $("count");
   const connDot = $("connDot"), connText = $("connText"), sendBtn = $("send");
   const nameInput = $("name"), textInput = $("text");
+  const flist = $("flist"), fbadge = $("fbadge"), drop = $("drop"), fileInput = $("fileInput");
 
   let name = localStorage.getItem("servd-name") || ("guest-" + Math.floor(1000 + Math.random() * 9000));
   nameInput.value = name;
   let selfId = null, ws = null, retry = null;
+  const files = new Map();
 
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const colorFor = s => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
   const initials = s => s.replace(/[^a-zA-Z0-9]/g, " ").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
   const time = ts => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const scroll = () => { log.scrollTop = log.scrollHeight; };
-
-  function setConn(on, label) {
-    connDot.classList.toggle("on", on);
-    connText.textContent = label;
-    sendBtn.disabled = !on;
+  const ext = n => { const p = n.lastIndexOf("."); return p > 0 ? n.slice(p + 1, p + 5).toUpperCase() : "FILE"; };
+  function fmtSize(b) {
+    if (b < 1024) return b + " B";
+    const u = ["KB", "MB", "GB"]; let i = -1;
+    do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
+    return b.toFixed(b < 10 ? 1 : 0) + " " + u[i];
   }
 
+  function setConn(on, label) { connDot.classList.toggle("on", on); connText.textContent = label; sendBtn.disabled = !on; }
+
+  // ---- roster ----
   function renderRoster(peers) {
     count.textContent = peers.length;
     roster.innerHTML = "";
@@ -130,17 +185,16 @@
       return;
     }
     for (const p of peers) {
-      const row = document.createElement("div");
-      row.className = "peer";
+      const row = document.createElement("div"); row.className = "peer";
       const you = p.id === selfId ? ' <span class="tag-you">you</span>' : "";
       row.innerHTML =
         '<div class="ava" style="background:' + colorFor(p.name) + '">' + initials(p.name) + '</div>' +
-        '<div class="pmeta"><div class="pname">' + esc(p.name) + you + '</div>' +
-        '<div class="paddr">' + esc(p.address) + '</div></div>';
+        '<div class="pmeta"><div class="pname">' + esc(p.name) + you + '</div><div class="paddr">' + esc(p.address) + '</div></div>';
       roster.appendChild(row);
     }
   }
 
+  // ---- chat ----
   function addChat(fromId, fromName, text, ts) {
     const stick = atBottom();
     const el = document.createElement("div");
@@ -148,27 +202,65 @@
     const who = fromId === selfId ? "you" : esc(fromName);
     el.innerHTML =
       '<div class="mhead"><span class="mwho" style="color:' + (fromId === selfId ? "var(--accent-ink)" : colorFor(fromName)) + '">' + who + '</span>' +
-      '<span class="mtime">' + time(ts) + '</span></div>' +
-      '<div class="bubble">' + esc(text) + '</div>';
-    log.appendChild(el);
-    if (stick) scroll();
+      '<span class="mtime">' + time(ts) + '</span></div><div class="bubble">' + esc(text) + '</div>';
+    log.appendChild(el); if (stick) scroll();
+  }
+  function addSys(text) { const stick = atBottom(); const el = document.createElement("div"); el.className = "sys"; el.textContent = "- " + text + " -"; log.appendChild(el); if (stick) scroll(); }
+
+  // ---- files ----
+  function renderFiles() {
+    const items = [...files.values()].sort((a, b) => b.ts - a.ts);
+    fbadge.style.display = items.length ? "" : "none";
+    fbadge.textContent = items.length;
+    if (!items.length) { flist.innerHTML = '<div class="files-empty">No files shared yet.</div>'; return; }
+    flist.innerHTML = "";
+    for (const f of items) {
+      const row = document.createElement("div"); row.className = "frow";
+      row.innerHTML =
+        '<div class="ficon">' + esc(ext(f.name)) + '</div>' +
+        '<div class="fmeta"><div class="fname">' + esc(f.name) + '</div>' +
+        '<div class="fsub">from ' + esc(f.fromName) + ' &middot; ' + time(f.ts) + '</div></div>' +
+        '<span class="fsize">' + fmtSize(f.size) + '</span>' +
+        '<a class="dl" href="/files/' + encodeURIComponent(f.id) + '" download="' + esc(f.name) + '" title="Download">&#8595;</a>';
+      flist.appendChild(row);
+    }
+  }
+  function addFile(f, announce) {
+    const isNew = !files.has(f.id);
+    files.set(f.id, f);
+    renderFiles();
+    if (isNew && announce) addSys(f.fromName + " shared " + f.name);
+  }
+  function loadFiles() { fetch("/files").then(r => r.json()).then(list => { list.forEach(f => files.set(f.id, f)); renderFiles(); }).catch(() => {}); }
+
+  function upload(fileList) {
+    for (const file of fileList) {
+      const fd = new FormData();
+      fd.append("from", name);
+      fd.append("file", file, file.name);
+      fetch("/files", { method: "POST", body: fd }).catch(() => addSys("upload failed: " + file.name));
+    }
   }
 
-  function addSys(text) {
-    const stick = atBottom();
-    const el = document.createElement("div");
-    el.className = "sys";
-    el.textContent = "- " + text + " -";
-    log.appendChild(el);
-    if (stick) scroll();
-  }
+  // drag + drop
+  ["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", ev => { if (ev.dataTransfer && ev.dataTransfer.files.length) upload(ev.dataTransfer.files); });
+  fileInput.addEventListener("change", () => { if (fileInput.files.length) { upload(fileInput.files); fileInput.value = ""; } });
 
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  // ---- tabs ----
+  document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", "false"));
+    tab.setAttribute("aria-selected", "true");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    $("view-" + tab.dataset.view).classList.add("active");
+  }));
 
+  // ---- websocket ----
   function connect() {
     ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
     ws.onopen = () => { setConn(true, "connected"); sayHello(); };
-    ws.onclose = () => { setConn(false, "reconnecting…"); scheduleRetry(); };
+    ws.onclose = () => { setConn(false, "reconnecting..."); scheduleRetry(); };
     ws.onerror = () => ws.close();
     ws.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
@@ -177,28 +269,23 @@
         case "roster": renderRoster(m.peers); break;
         case "chat": addChat(m.fromId, m.fromName, m.text, m.ts); break;
         case "presence": addSys(esc(m.peer.name) + (m.event === "join" ? " joined the hub" : " left the hub")); break;
+        case "file": addFile(m.file, true); break;
       }
     };
   }
   function scheduleRetry() { clearTimeout(retry); retry = setTimeout(connect, 1500); }
   function sayHello() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "hello", name })); }
 
-  nameInput.addEventListener("change", () => {
-    name = nameInput.value.trim() || name;
-    nameInput.value = name;
-    localStorage.setItem("servd-name", name);
-    sayHello();
-  });
+  nameInput.addEventListener("change", () => { name = nameInput.value.trim() || name; nameInput.value = name; localStorage.setItem("servd-name", name); sayHello(); });
   nameInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nameInput.blur(); } });
-
   $("composer").addEventListener("submit", e => {
     e.preventDefault();
     const text = textInput.value.trim();
     if (!text || !ws || ws.readyState !== 1) return;
-    ws.send(JSON.stringify({ type: "chat", text }));
-    textInput.value = "";
+    ws.send(JSON.stringify({ type: "chat", text })); textInput.value = "";
   });
 
+  loadFiles();
   connect();
 </script>
 </body>

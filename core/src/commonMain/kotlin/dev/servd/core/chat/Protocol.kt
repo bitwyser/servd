@@ -53,3 +53,19 @@ data class PresenceEvent(
     val event: String,
     val peer: Peer,
 ) : ServerMessage
+
+/** A file that has been shared to the hub. */
+@Serializable
+data class FileMeta(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val contentType: String? = null,
+    val fromName: String,
+    val ts: Long,
+)
+
+/** Broadcast when someone uploads a file, so every dashboard updates live. */
+@Serializable
+@SerialName("file")
+data class FileShared(val file: FileMeta) : ServerMessage

@@ -35,7 +35,7 @@ fun main(args: Array<String>) {
     }
 
     val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(advertisedHost, lan?.ip))
-    val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls)
+    val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls, File(dataDir, "files"))
 
     println()
     println("serving : ${server.url}")
