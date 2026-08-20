@@ -1,10 +1,10 @@
 package dev.servd.core.tls
 
 import io.ktor.network.tls.certificates.buildKeyStore
-import io.ktor.network.tls.certificates.saveToFile
 import java.io.File
 import java.security.KeyStore
 import java.security.MessageDigest
+import java.security.PrivateKey
 import java.security.cert.X509Certificate
 
 /**
@@ -45,19 +45,12 @@ object ServdCertificates {
         val storePw = STORE_PASSWORD.toCharArray()
         val keyPw = KEY_PASSWORD.toCharArray()
 
-        val keyStore: KeyStore = if (file.exists()) {
-            KeyStore.getInstance("JKS").apply {
-                file.inputStream().use { load(it, storePw) }
-            }
-        } else {
-            buildKeyStore {
-                certificate(ALIAS) {
-                    password = KEY_PASSWORD
-                    domains = (hosts + listOf("localhost", "127.0.0.1")).distinct()
-                    daysValid = 3650
-                }
-            }.also { it.saveToFile(file, STORE_PASSWORD) }
-        }
+        // PKCS12, not JKS: Android has no JKS provider, and PKCS12 loads on both platforms.
+        // Reload the persisted keystore; regenerate if it is missing or unreadable.
+        val keyStore: KeyStore = runCatching {
+            check(file.exists())
+            KeyStore.getInstance("PKCS12").apply { file.inputStream().use { load(it, storePw) } }
+        }.getOrElse { generate(file, hosts, storePw, keyPw) }
 
         val cert = keyStore.getCertificate(ALIAS) as X509Certificate
         val fingerprint = MessageDigest.getInstance("SHA-256")
@@ -65,5 +58,24 @@ object ServdCertificates {
             .joinToString(":") { "%02X".format(it) }
 
         return TlsKeyStore(keyStore, ALIAS, STORE_PASSWORD, KEY_PASSWORD, file, fingerprint)
+    }
+
+    /** Generate a fresh self-signed cert and persist it as a PKCS12 keystore. */
+    private fun generate(file: File, hosts: List<String>, storePw: CharArray, keyPw: CharArray): KeyStore {
+        val generated = buildKeyStore {
+            certificate(ALIAS) {
+                password = KEY_PASSWORD
+                domains = (hosts + listOf("localhost", "127.0.0.1")).distinct()
+                daysValid = 3650
+            }
+        }
+        // Re-store explicitly as PKCS12 so it reloads on both desktop and Android.
+        val key = generated.getKey(ALIAS, keyPw) as PrivateKey
+        val chain = generated.getCertificateChain(ALIAS)
+        return KeyStore.getInstance("PKCS12").apply {
+            load(null, storePw)
+            setKeyEntry(ALIAS, key, keyPw, chain)
+            file.outputStream().use { store(it, storePw) }
+        }
     }
 }
