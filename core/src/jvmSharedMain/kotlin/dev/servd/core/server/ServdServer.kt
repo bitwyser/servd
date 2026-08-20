@@ -79,8 +79,8 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
             sslConnector(
                 keyStore = tls.keyStore,
                 keyAlias = tls.alias,
-                keyStorePassword = { tls.keyStorePassword },
-                privateKeyPassword = { tls.privateKeyPassword },
+                keyStorePassword = { tls.keyStorePasswordChars() },
+                privateKeyPassword = { tls.privateKeyPasswordChars() },
             ) {
                 host = bindHost
                 port = this@ServdServer.port

@@ -5,6 +5,7 @@ import dev.servd.core.discovery.MdnsAdvertiser
 import dev.servd.core.discovery.MdnsBrowser
 import dev.servd.core.net.detectLanAddress
 import dev.servd.core.server.ServdServer
+import dev.servd.core.service.FtpService
 import dev.servd.core.service.SshService
 import dev.servd.core.tls.ServdCertificates
 import io.ktor.server.netty.Netty
@@ -46,15 +47,25 @@ fun main(args: Array<String>) {
 
     val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(advertisedHost, lan?.ip))
     val filesDir = File(dataDir, "files")
-    // Optional SSH/SFTP service (off until enabled from the admin panel).
+    // Optional services (off until enabled from the admin panel), sharing one credential.
+    val servdPassword = loadOrCreateServdPassword(dataDir)
     val sshService = SshService(
         port = 2222,
         filesDir = filesDir,
         hostKeyFile = File(dataDir, "ssh_host_key.ser"),
         username = "servd",
-        password = loadOrCreateSshPassword(dataDir),
+        password = servdPassword,
     )
-    val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(sshService))
+    val ftpService = FtpService(
+        port = 2121,
+        filesDir = filesDir,
+        tls = tls,
+        username = "servd",
+        password = servdPassword,
+    )
+    val server = ServdServer(
+        Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(sshService, ftpService),
+    )
 
     // When bound to all interfaces, the host reaches admin via loopback; a specific --host
     // means admin is only available if that host is itself loopback.
@@ -89,7 +100,7 @@ fun main(args: Array<String>) {
     println("Open that URL on any device on this network. The browser will warn about the")
     println("self-signed certificate - that's expected; verify the fingerprint above, then proceed.")
     if (advertised) println("discovery: advertising _servd._tcp - other devices can run `servd discover`.")
-    println("services: SSH/SFTP available on port 2222 - enable it from the admin panel.")
+    println("services: SSH/SFTP (2222) and FTPS (2121) available - enable them from the admin panel.")
     println("Press Ctrl+C to stop.")
 
     if (!opts.noOpen) openBrowserSoon(localUrl)
@@ -114,9 +125,9 @@ private fun runDiscover() {
 private fun hostName(): String =
     runCatching { InetAddress.getLocalHost().hostName }.getOrNull()?.substringBefore('.') ?: "host"
 
-/** Load a stable SSH password from the data dir, generating one on first run. */
-private fun loadOrCreateSshPassword(dir: File): String {
-    val file = File(dir, "ssh.password")
+/** Load a stable credential for the optional services, generating one on first run. */
+private fun loadOrCreateServdPassword(dir: File): String {
+    val file = File(dir, "servd.password")
     val existing = runCatching { file.readText().trim() }.getOrNull()
     if (!existing.isNullOrBlank()) return existing
     val alphabet = "abcdefghijkmnpqrstuvwxyz23456789" // no easily-confused chars

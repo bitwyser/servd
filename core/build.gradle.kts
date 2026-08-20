@@ -54,6 +54,8 @@ kotlin {
                 // SSH/SFTP server on desktop (heavy; kept off the Android target).
                 implementation(libs.sshd.core)
                 implementation(libs.sshd.sftp)
+                // FTP/FTPS server on desktop.
+                implementation(libs.ftpserver.core)
             }
         }
     }

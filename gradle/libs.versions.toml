@@ -7,6 +7,7 @@ ktor = "3.0.3"
 slf4j = "2.0.16"
 jmdns = "3.5.9"
 sshd = "2.13.2"
+ftpserver = "1.2.0"
 jvmTarget = "17"
 android-compileSdk = "35"
 android-minSdk = "24"
@@ -23,6 +24,7 @@ slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
 sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "sshd" }
 sshd-sftp = { module = "org.apache.sshd:sshd-sftp", version.ref = "sshd" }
+ftpserver-core = { module = "org.apache.ftpserver:ftpserver-core", version.ref = "ftpserver" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

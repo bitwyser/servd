@@ -7,15 +7,23 @@ import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.cert.X509Certificate
 
-/** A loaded/generated self-signed keystore plus its verifiable fingerprint. */
+/**
+ * A loaded/generated self-signed keystore plus its verifiable fingerprint. Passwords are kept
+ * as immutable Strings and handed out as fresh CharArrays via [keyStorePasswordChars] /
+ * [privateKeyPasswordChars] - the TLS stack zeroes any CharArray it is given, so a shared array
+ * would be wiped after the first server reads it.
+ */
 class TlsKeyStore(
     val keyStore: KeyStore,
     val alias: String,
-    val keyStorePassword: CharArray,
-    val privateKeyPassword: CharArray,
+    val keyStorePassword: String,
+    val privateKeyPassword: String,
     val file: File,
     val fingerprintSha256: String,
-)
+) {
+    fun keyStorePasswordChars(): CharArray = keyStorePassword.toCharArray()
+    fun privateKeyPasswordChars(): CharArray = privateKeyPassword.toCharArray()
+}
 
 /**
  * Generates (once) and persists a self-signed TLS keystore for servd, then reloads it on
@@ -25,8 +33,10 @@ class TlsKeyStore(
  */
 object ServdCertificates {
     private const val ALIAS = "servd"
+    // Store and key share one password: PKCS12 (and Apache FtpServer's SSL layer) work best
+    // when they match, and this is a local self-signed cert, so the value isn't a secret.
     private const val STORE_PASSWORD = "servd-store"
-    private const val KEY_PASSWORD = "servd-key"
+    private const val KEY_PASSWORD = STORE_PASSWORD
     private const val KEYSTORE_FILE = "keystore.jks"
 
     fun loadOrCreate(dir: File, hosts: List<String>): TlsKeyStore {
@@ -54,6 +64,6 @@ object ServdCertificates {
             .digest(cert.encoded)
             .joinToString(":") { "%02X".format(it) }
 
-        return TlsKeyStore(keyStore, ALIAS, storePw, keyPw, file, fingerprint)
+        return TlsKeyStore(keyStore, ALIAS, STORE_PASSWORD, KEY_PASSWORD, file, fingerprint)
     }
 }
