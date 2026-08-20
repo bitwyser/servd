@@ -5,12 +5,14 @@ import dev.servd.core.discovery.MdnsAdvertiser
 import dev.servd.core.discovery.MdnsBrowser
 import dev.servd.core.net.detectLanAddress
 import dev.servd.core.server.ServdServer
+import dev.servd.core.service.SshService
 import dev.servd.core.tls.ServdCertificates
 import io.ktor.server.netty.Netty
 import java.awt.Desktop
 import java.io.File
 import java.net.InetAddress
 import java.net.URI
+import java.security.SecureRandom
 
 /**
  * servd desktop entrypoint.
@@ -43,7 +45,16 @@ fun main(args: Array<String>) {
     }
 
     val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(advertisedHost, lan?.ip))
-    val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls, File(dataDir, "files"))
+    val filesDir = File(dataDir, "files")
+    // Optional SSH/SFTP service (off until enabled from the admin panel).
+    val sshService = SshService(
+        port = 2222,
+        filesDir = filesDir,
+        hostKeyFile = File(dataDir, "ssh_host_key.ser"),
+        username = "servd",
+        password = loadOrCreateSshPassword(dataDir),
+    )
+    val server = ServdServer(Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(sshService))
 
     // When bound to all interfaces, the host reaches admin via loopback; a specific --host
     // means admin is only available if that host is itself loopback.
@@ -78,6 +89,7 @@ fun main(args: Array<String>) {
     println("Open that URL on any device on this network. The browser will warn about the")
     println("self-signed certificate - that's expected; verify the fingerprint above, then proceed.")
     if (advertised) println("discovery: advertising _servd._tcp - other devices can run `servd discover`.")
+    println("services: SSH/SFTP available on port 2222 - enable it from the admin panel.")
     println("Press Ctrl+C to stop.")
 
     if (!opts.noOpen) openBrowserSoon(localUrl)
@@ -101,6 +113,18 @@ private fun runDiscover() {
 
 private fun hostName(): String =
     runCatching { InetAddress.getLocalHost().hostName }.getOrNull()?.substringBefore('.') ?: "host"
+
+/** Load a stable SSH password from the data dir, generating one on first run. */
+private fun loadOrCreateSshPassword(dir: File): String {
+    val file = File(dir, "ssh.password")
+    val existing = runCatching { file.readText().trim() }.getOrNull()
+    if (!existing.isNullOrBlank()) return existing
+    val alphabet = "abcdefghijkmnpqrstuvwxyz23456789" // no easily-confused chars
+    val rnd = SecureRandom()
+    val password = buildString { repeat(14) { append(alphabet[rnd.nextInt(alphabet.length)]) } }
+    runCatching { dir.mkdirs(); file.writeText(password) }
+    return password
+}
 
 private fun openBrowserSoon(url: String) {
     Thread {

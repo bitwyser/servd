@@ -21,7 +21,8 @@ domain on a LAN, so you verify the connection by its **fingerprint** instead of 
 - **Connected-device roster** - see who's on the hub, live, with join/leave
 - **Drag-n-drop file sharing** - drop a file, it appears on every device instantly, download intact
 - **Auto-discovery (mDNS)** - the hub advertises itself; `servd discover` finds hubs without typing an IP
-- **Host-only admin panel** - an Admin tab (served on `127.0.0.1` only) showing server status; toggles for SSH/FTP arrive in later phases
+- **Host-only admin panel** - an Admin tab (served on `127.0.0.1` only) to view status and toggle optional servers
+- **Optional SSH/SFTP server** - toggle it on from the admin panel; credentialed SFTP access jailed to the shared files (no OS shell)
 - **Self-signed TLS** with a printed **SHA-256 fingerprint** you can verify
 - **`/status`** JSON endpoint (version, address, fingerprint)
 - **CLI** to start it and auto-open the dashboard
@@ -248,8 +249,8 @@ Built in self-contained phases; each is independently runnable.
 | 3 | Drag-n-drop file sharing | ✅ |
 | 4 | mDNS auto-discovery of hubs | ✅ |
 | 5 | Service manager + host-only admin panel | ✅ |
-| 6 | Optional SSH server | ▫️ next |
-| 7 | Optional FTPS server | ▫️ |
+| 6 | Optional SSH server | ✅ |
+| 7 | Optional FTPS server | ▫️ next |
 | 8 | Android host app (foreground service, real UI) | ▫️ |
 | 9 | Packaging (installers + APK) | ▫️ |
 

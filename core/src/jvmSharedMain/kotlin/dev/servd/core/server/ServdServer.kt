@@ -7,6 +7,7 @@ import dev.servd.core.chat.FileMeta
 import dev.servd.core.chat.Hello
 import dev.servd.core.files.FileStore
 import dev.servd.core.service.HttpService
+import dev.servd.core.service.Service
 import dev.servd.core.service.ServiceManager
 import dev.servd.core.tls.TlsKeyStore
 import io.ktor.server.application.ApplicationCall
@@ -61,12 +62,14 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val tls: TlsKeyStore,
     /** Directory where shared files are stored. */
     filesDir: File,
+    /** Optional platform services (e.g. SSH on desktop) added alongside the always-on HTTP one. */
+    extraServices: List<Service> = emptyList(),
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
     private val chatHub = ChatHub(serverName = advertisedHost)
     private val fileStore = FileStore(filesDir)
-    private val serviceManager = ServiceManager(listOf(HttpService(port)))
+    private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
     private val engine = embeddedServer(

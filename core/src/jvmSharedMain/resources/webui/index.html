@@ -290,9 +290,10 @@
     for (const s of list) {
       const running = s.state === "Running";
       const row = document.createElement("div"); row.className = "svc";
+      const detail = s.detail && running ? '<div class="svc-sub" style="color:var(--muted)">' + esc(s.detail) + '</div>' : "";
       row.innerHTML =
         '<div class="svc-meta"><div class="svc-name">' + esc(s.label) + '</div>' +
-        '<div class="svc-sub">' + esc(s.id) + ' &middot; :' + s.port + '</div></div>' +
+        '<div class="svc-sub">' + esc(s.id) + ' &middot; :' + s.port + '</div>' + detail + '</div>' +
         '<span class="state ' + esc(s.state.toLowerCase()) + '">' + esc(s.state) + '</span>' +
         '<label class="switch"><input type="checkbox"' + (running ? " checked" : "") + (s.toggleable ? "" : " disabled") +
         ' data-id="' + esc(s.id) + '"><span class="track"></span><span class="knob"></span></label>';

@@ -14,6 +14,10 @@ interface Service {
     val port: Int
     val toggleable: Boolean
     val state: ServiceState
+
+    /** Optional connection info shown in the (host-only) admin panel, e.g. credentials. */
+    val detail: String? get() = null
+
     suspend fun start()
     suspend fun stop()
 }
@@ -26,9 +30,10 @@ data class ServiceInfo(
     val port: Int,
     val toggleable: Boolean,
     val state: String,
+    val detail: String? = null,
 )
 
-fun Service.toInfo(): ServiceInfo = ServiceInfo(id, label, port, toggleable, state.name)
+fun Service.toInfo(): ServiceInfo = ServiceInfo(id, label, port, toggleable, state.name, detail)
 
 /** Registers servd's services and starts/stops the toggleable ones on request. */
 class ServiceManager(services: List<Service>) {

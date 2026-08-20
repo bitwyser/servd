@@ -51,6 +51,9 @@ kotlin {
             dependencies {
                 // mDNS advertisement/discovery on desktop (Android uses NsdManager in Phase 8).
                 implementation(libs.jmdns)
+                // SSH/SFTP server on desktop (heavy; kept off the Android target).
+                implementation(libs.sshd.core)
+                implementation(libs.sshd.sftp)
             }
         }
     }
