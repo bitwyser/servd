@@ -25,6 +25,10 @@ fun main(args: Array<String>) {
     // Quiet the benign Netty TLS-handshake warnings logged when a browser declines the
     // self-signed cert before the user clicks "proceed". Set before any logging happens.
     System.setProperty("org.slf4j.simpleLogger.log.io.netty", "error")
+    // Silence the Ktor Netty dispatch logger. On Ctrl+C it floods the console with
+    // "RejectedExecutionException: event executor terminated" - an in-flight HTTP/2 frame
+    // racing the event loop's shutdown. The server stops cleanly regardless; this is only noise.
+    System.setProperty("org.slf4j.simpleLogger.log.io.ktor.server.netty.CIO", "off")
 
     if (args.firstOrNull() == "discover") {
         runDiscover()
