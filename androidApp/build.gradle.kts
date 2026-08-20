@@ -15,6 +15,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+        multiDexEnabled = true // Netty/Ktor push past the 64k method limit
     }
 
     buildTypes {
@@ -27,6 +28,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/INDEX.LIST",
+                "META-INF/io.netty.versions.properties",
+                "META-INF/*.kotlin_module",
+                "META-INF/DEPENDENCIES",
+            )
+        }
+    }
 }
 
 kotlin {
@@ -37,4 +49,9 @@ kotlin {
 
 dependencies {
     implementation(project(":core"))
+    // The HTTPS engine for the shared server (Ktor CIO cannot serve HTTPS). SSH/FTP servers come
+    // transitively from :core, which now hosts them for both desktop and Android.
+    implementation(libs.ktor.server.netty)
+    // Rasterize the join QR for the control screen (core's Qr emits SVG).
+    implementation(libs.zxing.core)
 }

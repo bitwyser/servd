@@ -42,6 +42,11 @@ kotlin {
                 implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.network.tls.certificates)
                 implementation(libs.zxing.core)
+                // SSH/SFTP (Apache MINA SSHD) and FTP/FTPS (Apache FtpServer) - both host on
+                // desktop AND Android (a phone is a full hub), so they live in the shared set.
+                implementation(libs.sshd.core)
+                implementation(libs.sshd.sftp)
+                implementation(libs.ftpserver.core)
             }
         }
         val androidMain by getting {
@@ -50,13 +55,8 @@ kotlin {
         val desktopMain by getting {
             dependsOn(jvmSharedMain)
             dependencies {
-                // mDNS advertisement/discovery on desktop (Android uses NsdManager in Phase 8).
+                // mDNS advertisement/discovery on desktop (Android uses NsdManager instead).
                 implementation(libs.jmdns)
-                // SSH/SFTP server on desktop (heavy; kept off the Android target).
-                implementation(libs.sshd.core)
-                implementation(libs.sshd.sftp)
-                // FTP/FTPS server on desktop.
-                implementation(libs.ftpserver.core)
             }
         }
     }
@@ -74,4 +74,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // The dashboard resource lives in the shared jvmSharedMain source set; the Android target
+    // does not pick it up automatically, so package it as an Android Java resource too. One copy,
+    // reachable via the classloader on both desktop and Android.
+    sourceSets["main"].resources.srcDir("src/jvmSharedMain/resources")
 }

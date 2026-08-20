@@ -26,11 +26,11 @@ import io.ktor.server.engine.ApplicationEngineFactory
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
-import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.origin
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
@@ -79,6 +79,11 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val fileStore = FileStore(filesDir)
     private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
+
+    // The dashboard is one resource; read it by name (works on desktop and Android).
+    private val indexHtml: ByteArray? by lazy {
+        javaClass.classLoader?.getResourceAsStream("webui/index.html")?.use { it.readBytes() }
+    }
 
     private val engine = embeddedServer(
         engineFactory,
@@ -231,9 +236,12 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                     status = if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest,
                 )
             }
-            // The served dashboard shell (webui/ resources), default document index.html.
-            staticResources("/", "webui") {
-                default("index.html")
+            // The served dashboard (single page). Read the one resource by name via the
+            // classloader - Ktor's directory-style staticResources does not resolve on Android.
+            get("/") {
+                val html = indexHtml
+                if (html != null) call.respondBytes(html, ContentType.Text.Html)
+                else call.respond(HttpStatusCode.NotFound)
             }
         }
     }

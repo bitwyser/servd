@@ -6,6 +6,7 @@ import dev.servd.core.discovery.MdnsBrowser
 import dev.servd.core.net.detectLanAddress
 import dev.servd.core.server.ServdServer
 import dev.servd.core.service.FtpService
+import dev.servd.core.service.ServdCredentials
 import dev.servd.core.service.SshService
 import dev.servd.core.tls.ServdCertificates
 import io.ktor.server.netty.Netty
@@ -13,7 +14,6 @@ import java.awt.Desktop
 import java.io.File
 import java.net.InetAddress
 import java.net.URI
-import java.security.SecureRandom
 
 /**
  * servd desktop entrypoint.
@@ -48,19 +48,19 @@ fun main(args: Array<String>) {
     val tls = ServdCertificates.loadOrCreate(dataDir, listOfNotNull(advertisedHost, lan?.ip))
     val filesDir = File(dataDir, "files")
     // Optional services (off until enabled from the admin panel), sharing one credential.
-    val servdPassword = loadOrCreateServdPassword(dataDir)
+    val servdPassword = ServdCredentials.loadOrCreatePassword(dataDir)
     val sshService = SshService(
         port = 2222,
         filesDir = filesDir,
         hostKeyFile = File(dataDir, "ssh_host_key.ser"),
-        username = "servd",
+        username = ServdCredentials.USERNAME,
         password = servdPassword,
     )
     val ftpService = FtpService(
         port = 2121,
         filesDir = filesDir,
         tls = tls,
-        username = "servd",
+        username = ServdCredentials.USERNAME,
         password = servdPassword,
     )
     val server = ServdServer(
@@ -126,18 +126,6 @@ private fun runDiscover() {
 
 private fun hostName(): String =
     runCatching { InetAddress.getLocalHost().hostName }.getOrNull()?.substringBefore('.') ?: "host"
-
-/** Load a stable credential for the optional services, generating one on first run. */
-private fun loadOrCreateServdPassword(dir: File): String {
-    val file = File(dir, "servd.password")
-    val existing = runCatching { file.readText().trim() }.getOrNull()
-    if (!existing.isNullOrBlank()) return existing
-    val alphabet = "abcdefghijkmnpqrstuvwxyz23456789" // no easily-confused chars
-    val rnd = SecureRandom()
-    val password = buildString { repeat(14) { append(alphabet[rnd.nextInt(alphabet.length)]) } }
-    runCatching { dir.mkdirs(); file.writeText(password) }
-    return password
-}
 
 private fun openBrowserSoon(url: String) {
     Thread {

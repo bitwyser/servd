@@ -22,9 +22,9 @@ import java.security.KeyStore
 import java.security.PrivateKey
 
 /**
- * Optional FTP service (Apache FtpServer) speaking **explicit FTPS** (AUTH TLS) using servd's
- * own self-signed keystore. Credentialed single user, home directory jailed to the shared files
- * directory. Desktop-only, toggled from the host admin panel.
+ * FTP service (Apache FtpServer) speaking **explicit FTPS** (AUTH TLS) using servd's own
+ * self-signed keystore. Credentialed single user, home directory jailed to the shared files
+ * directory. Hosts on both desktop and Android, toggled from the host admin panel.
  */
 class FtpService(
     override val port: Int,

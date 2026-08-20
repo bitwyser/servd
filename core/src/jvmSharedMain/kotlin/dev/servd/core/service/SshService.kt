@@ -11,10 +11,10 @@ import org.apache.sshd.sftp.server.SftpSubsystemFactory
 import java.io.File
 
 /**
- * Optional SSH service (Apache MINA SSHD). It exposes **SFTP only**, jailed to the shared files
+ * SSH service (Apache MINA SSHD). It exposes **SFTP only**, jailed to the shared files
  * directory - no interactive shell, so connecting never grants OS access to the host. Clients
  * authenticate with a generated username/password (shown in the host-only admin panel).
- * Desktop-only for now; Android SSH hosting is out of scope.
+ * Hosts on both desktop and Android (Android needs `user.home` set before MINA SSHD class-init).
  */
 class SshService(
     override val port: Int,
