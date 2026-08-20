@@ -1,16 +1,16 @@
 # servd
 
 A portable **local-network server tool**. Run it on a laptop or (soon) a phone and it turns
-that device into a small hub other devices on the same Wi-Fi / hotspot can reach — starting
+that device into a small hub other devices on the same Wi-Fi / hotspot can reach - starting
 with an encrypted dashboard, real-time chat, and a live roster of who's connected. FTP, SSH,
 and file sharing are on the roadmap.
 
 Everything is served over **HTTPS/WSS** with a self-signed certificate (there's no public
 domain on a LAN, so you verify the connection by its **fingerprint** instead of a CA).
 
-> **Status:** early development. Phases 0–2 are done and usable on **desktop**
+> **Status:** early development. Phases 0-2 are done and usable on **desktop**
 > (Windows / Linux / macOS). The Android app currently only proves the shared core runs
-> (a "hello" screen) — it does **not** host servers yet. See [Roadmap](#roadmap).
+> (a "hello" screen) - it does **not** host servers yet. See [Roadmap](#roadmap).
 
 ---
 
@@ -18,7 +18,7 @@ domain on a LAN, so you verify the connection by its **fingerprint** instead of 
 
 - **HTTPS dashboard** bound to your LAN/hotspot IP on port **8443**
 - **Real-time chat** between everyone connected (over WSS)
-- **Connected-device roster** — see who's on the hub, live, with join/leave
+- **Connected-device roster** - see who's on the hub, live, with join/leave
 - **Self-signed TLS** with a printed **SHA-256 fingerprint** you can verify
 - **`/status`** JSON endpoint (version, address, fingerprint)
 - **CLI** to start it and auto-open the dashboard
@@ -33,7 +33,7 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 ### Language & build
 | | | |
 |---|---|---|
-| **Kotlin** | `2.1.0` | Kotlin **Multiplatform** — one shared `core` compiled for both desktop JVM and Android |
+| **Kotlin** | `2.1.0` | Kotlin **Multiplatform** - one shared `core` compiled for both desktop JVM and Android |
 | **Gradle** | `8.11.1` | Build tool (Kotlin DSL + version catalog); wrapper committed, no separate install |
 | **JDK** | 17 target | Compiles to Java 17 bytecode (built with the installed JDK 21) |
 
@@ -42,7 +42,7 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 |---|---|---|
 | **Ktor** | `3.0.3` | HTTP/S + WebSocket server framework |
 | ├ `ktor-server-core` | | Routing, application, static resource serving |
-| ├ `ktor-server-netty` | | **Netty** engine — serves HTTPS on desktop (Ktor's CIO engine can't) |
+| ├ `ktor-server-netty` | | **Netty** engine - serves HTTPS on desktop (Ktor's CIO engine can't) |
 | ├ `ktor-server-websockets` | | WSS transport for chat + presence |
 | └ `ktor-network-tls-certificates` | | Generates the self-signed keystore |
 | **Netty** | via Ktor | Underlying async I/O engine on desktop |
@@ -58,16 +58,16 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 ### Frontend (served dashboard)
 | | | |
 |---|---|---|
-| **Plain HTML/CSS/JS** | — | No framework; single file in `core/.../resources/webui/` |
+| **Plain HTML/CSS/JS** | - | No framework; single file in `core/.../resources/webui/` |
 | **WebSocket API + Fetch API** | browser | Live chat/roster and `/status` |
-| **System font stacks** | — | Monospace (machine data) + sans (chat); no webfont downloads |
+| **System font stacks** | - | Monospace (machine data) + sans (chat); no webfont downloads |
 
 ### Android
 | | | |
 |---|---|---|
 | **Android Gradle Plugin** | `8.7.3` | Android build |
 | **SDK levels** | compile `35` · min `24` · target `35` | |
-| **Android framework** | — | Plain `Activity` + `TextView` (no Compose / AppCompat yet) |
+| **Android framework** | - | Plain `Activity` + `TextView` (no Compose / AppCompat yet) |
 
 ### Logging
 | | | |
@@ -77,10 +77,10 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 ### Testing & verification
 | | | |
 |---|---|---|
-| **kotlin-test** | — | Unit tests for pure logic (`LanAddressSelector`, `PeerRegistry`, protocol) |
+| **kotlin-test** | - | Unit tests for pure logic (`LanAddressSelector`, `PeerRegistry`, protocol) |
 | **`java.net.http.WebSocket`** | JDK | Dependency-free 2-client WSS integration harness |
 | **Android emulator + adb** | SDK | Phase 0.5 on-device verification (Pixel_5 AVD) |
-| **curl** | — | HTTPS/`/status` smoke checks |
+| **curl** | - | HTTPS/`/status` smoke checks |
 
 ### Protocols
 - **In use:** HTTPS, WSS, TLS (self-signed)
@@ -88,13 +88,13 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 
 ### Not used (deliberately)
 Node.js / Electron (chose a shared Kotlin/JVM core instead), Compose Multiplatform (the UI is
-the served web dashboard), and — for now — any external database (state is in-memory).
+the served web dashboard), and - for now - any external database (state is in-memory).
 
 ---
 
 ## Requirements
 
-- **JDK 17+** (JDK 21 is fine — the build targets Java 17 bytecode). No separate Gradle
+- **JDK 17+** (JDK 21 is fine - the build targets Java 17 bytecode). No separate Gradle
   install needed; the repo ships a Gradle wrapper.
 - **Internet on first run** (to download Gradle + dependencies).
 - For the Android app: the **Android SDK** (with `local.properties` pointing at it, e.g.
@@ -127,7 +127,7 @@ Open that URL on any device on this network...
 Press Ctrl+C to stop.
 ```
 
-Your browser will warn that the certificate isn't trusted — that's expected for a self-signed
+Your browser will warn that the certificate isn't trusted - that's expected for a self-signed
 LAN cert. Confirm the fingerprint shown in the page matches the one printed above, then proceed.
 
 > **Why `run.bat` / `run.ps1` instead of `gradlew` directly?** On this machine JDK 21's NIO
@@ -166,7 +166,7 @@ Run other Gradle tasks the same way, e.g. tests: `run.bat :core:desktopTest`.
 ## Android app (preview)
 
 The Android module currently just shows a "hello" screen proving the shared core runs on
-Android (it detects the phone's LAN address). It does **not** run the servers yet — that's
+Android (it detects the phone's LAN address). It does **not** run the servers yet - that's
 Phase 8.
 
 Build the debug APK:
@@ -184,13 +184,13 @@ The APK lands in `androidApp/build/outputs/apk/debug/`. Install it with
 
 ```
 servd/
-├─ core/         KMP library — the engine (shared by desktop + Android)
+├─ core/         KMP library - the engine (shared by desktop + Android)
 │   ├─ commonMain    protocol models, PeerRegistry, LAN-address selection, config
 │   ├─ jvmSharedMain the Ktor server, TLS, chat hub (shared by both JVM targets)
 │   ├─ desktopMain   desktop entrypoints
 │   └─ androidMain   Android glue
 │   └─ resources/webui   the served dashboard (HTML/CSS/JS)
-├─ desktopHost/  JVM app — the CLI that starts the server (uses the Netty engine)
+├─ desktopHost/  JVM app - the CLI that starts the server (uses the Netty engine)
 ├─ androidApp/   Android app shell (hello world for now)
 ├─ docs/         scaffold plan, phased implementation plan, dashboard mockup
 ├─ run.bat / run.ps1   run Gradle with the TMP/TEMP workaround
@@ -208,7 +208,7 @@ Self-signed cert handling is in `core/.../tls/ServdCertificates.kt`; chat/presen
 **`Unable to establish loopback connection` when building/running.** JDK 21's NIO uses an
 AF_UNIX socket for its internal pipe, created in the OS temp dir. Some Windows temp folders
 (e.g. `%LOCALAPPDATA%\Temp` under certain AV/EDR setups) reject socket files, which breaks
-Gradle and the server. The fix — already built into `run.bat` / `run.ps1` — is to point
+Gradle and the server. The fix - already built into `run.bat` / `run.ps1` - is to point
 `TMP`/`TEMP` at a directory that accepts socket files (the repo-local `.sock-tmp/`). If you
 invoke `gradlew` directly, set them yourself first:
 
@@ -216,7 +216,7 @@ invoke `gradlew` directly, set them yourself first:
 set TMP=%CD%\.sock-tmp && set TEMP=%CD%\.sock-tmp && gradlew :desktopHost:run
 ```
 
-**Browser says "Not secure / certificate invalid."** Expected — servd uses a self-signed cert
+**Browser says "Not secure / certificate invalid."** Expected - servd uses a self-signed cert
 because a LAN has no certificate authority. Verify the fingerprint in the page matches the one
 the CLI printed, then proceed.
 
@@ -249,4 +249,4 @@ See [`docs/phased-implementation.md`](docs/phased-implementation.md) for details
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

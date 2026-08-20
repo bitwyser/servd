@@ -1,4 +1,4 @@
-# servd — Scaffold Plan (v1)
+# servd - Scaffold Plan (v1)
 
 > A portable local-network server tool. One device runs encrypted HTTP/S, SSH, and FTP
 > services plus real-time chat, drag-n-drop file sharing, and a live roster of connected
@@ -10,12 +10,12 @@
 |---|---|
 | Language / build | Kotlin Multiplatform, Gradle (Kotlin DSL) + version catalog (`libs.versions.toml`) |
 | Targets | `androidTarget()`, `jvm("desktop")` |
-| HTTP/S + WebSocket | **Ktor** — one server for dashboard, files, chat, presence. Engine: **Netty** on desktop (Ktor CIO does not support server-side HTTPS); Android engine TBD in Phase 8 |
+| HTTP/S + WebSocket | **Ktor** - one server for dashboard, files, chat, presence. Engine: **Netty** on desktop (Ktor CIO does not support server-side HTTPS); Android engine TBD in Phase 8 |
 | SSH server | Apache MINA SSHD (optional module) |
 | FTP server | Apache FtpServer, FTPS (optional module) |
 | Serialization / async | kotlinx.serialization, kotlinx.coroutines |
 | TLS | Self-signed cert generated on first run (Ktor + BouncyCastle), keystore persisted |
-| Discovery | mDNS — JmDNS (desktop JVM), `NsdManager` (Android) |
+| Discovery | mDNS - JmDNS (desktop JVM), `NsdManager` (Android) |
 | Desktop CLI | Clikt (or kotlinx-cli) |
 | Logging | slf4j + logback (desktop); Android logcat bridge |
 
@@ -25,7 +25,7 @@
 servd/
 ├─ settings.gradle.kts
 ├─ gradle/libs.versions.toml
-├─ core/                     (KMP library — the engine)
+├─ core/                     (KMP library - the engine)
 │   ├─ commonMain            Service interface, models, ServiceManager, ChatHub, config
 │   ├─ jvmSharedMain         Ktor server, SSHD, FtpServer, TLS, JmDNS  (shared by both JVM targets)
 │   ├─ androidMain           NsdManager, Android IP detection (actual impls)
@@ -37,7 +37,7 @@ servd/
 
 **KMP note:** Android and Desktop are both JVM, but KMP's default hierarchy has no shared
 "android+jvm" source set. We add an intermediate **`jvmSharedMain`** that both `androidMain`
-and `desktopMain` depend on — the plain-JVM server libraries (Ktor/SSHD/FtpServer) live there
+and `desktopMain` depend on - the plain-JVM server libraries (Ktor/SSHD/FtpServer) live there
 once.
 
 ## 3. Core abstractions (commonMain)
@@ -63,9 +63,9 @@ class ServiceManager(private val services: List<Service>)   // start/stop/toggle
 class ChatHub                                               // peers, presence, message broadcast
 ```
 
-- **HttpService (Ktor)** — always on (the core; serves dashboard, files, chat, presence)
-- **SshService (MINA SSHD)** — optional, credentialed
-- **FtpService (FtpServer/FTPS)** — optional, credentialed
+- **HttpService (Ktor)** - always on (the core; serves dashboard, files, chat, presence)
+- **SshService (MINA SSHD)** - optional, credentialed
+- **FtpService (FtpServer/FTPS)** - optional, credentialed
 
 ## 4. Feature wiring
 
@@ -83,14 +83,14 @@ class ChatHub                                               // peers, presence, 
 
 - **Client routes** (chat, files, roster) → bound to the **LAN interface**; open to the network.
 - **Admin routes** (service toggles, credentials, cert) → gated to **loopback only**
-  (`remoteHost` is localhost) — only the host machine's browser can administer.
+  (`remoteHost` is localhost) - only the host machine's browser can administer.
 - **SSH / FTP** → real credentials, never anonymous. FTP uses FTPS (TLS).
 - Everything on the wire is encrypted (HTTPS/WSS, SSH by design, FTPS). Transport encryption,
-  not end-to-end — the host (server) can see traffic, as expected for a hub.
+  not end-to-end - the host (server) can see traffic, as expected for a hub.
 
 ## 6. Platform specifics
 
-**Desktop (Windows + Linux + macOS — same JVM jar):**
+**Desktop (Windows + Linux + macOS - same JVM jar):**
 - CLI: `servd start [--port] [--dir] [--no-open]`, `servd stop`, `servd status`
 - Auto-opens the default browser to `https://localhost:<port>`
 - IP detection: enumerate `NetworkInterface`, pick by **address** (not name)

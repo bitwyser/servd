@@ -4,7 +4,7 @@ package dev.servd.core.net
  * Chooses the best LAN / hotspot address to bind servd's servers to, given a list of
  * candidate [NetAddress]es. Pure Kotlin so it can be unit-tested with synthetic input.
  *
- * Strategy: keep only usable candidates (IPv4, up, not loopback), then rank them —
+ * Strategy: keep only usable candidates (IPv4, up, not loopback), then rank them -
  * real private LAN addresses on Wi-Fi/hotspot interfaces win; VM / container / tunnel
  * interfaces are pushed to the bottom.
  */

@@ -1,4 +1,4 @@
-// Root build file for servd — a portable local-network server tool.
+// Root build file for servd - a portable local-network server tool.
 // Plugins are declared here (apply false) and applied in each module.
 
 plugins {

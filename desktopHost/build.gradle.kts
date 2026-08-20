@@ -19,7 +19,7 @@ java {
 
 dependencies {
     implementation(project(":core"))
-    // Desktop server engine — Netty supports HTTPS (Ktor CIO does not).
+    // Desktop server engine - Netty supports HTTPS (Ktor CIO does not).
     implementation(libs.ktor.server.netty)
     runtimeOnly(libs.slf4j.simple)
 }

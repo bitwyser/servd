@@ -20,7 +20,7 @@ class TlsKeyStore(
 /**
  * Generates (once) and persists a self-signed TLS keystore for servd, then reloads it on
  * later runs. A LAN host has no public domain, so there is no certificate authority to trust
- * it — the fingerprint is how a user verifies the connection instead of a CA. The passwords
+ * it - the fingerprint is how a user verifies the connection instead of a CA. The passwords
  * are not secrets: the keystore only protects a self-signed local cert.
  */
 object ServdCertificates {

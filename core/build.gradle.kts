@@ -31,7 +31,7 @@ kotlin {
         }
 
         // Plain-JVM code (e.g. java.net enumeration, the Ktor server) shared by BOTH
-        // JVM targets — Android and desktop. This is the "jvmShared" intermediate.
+        // JVM targets - Android and desktop. This is the "jvmShared" intermediate.
         val jvmSharedMain by creating {
             dependsOn(commonMain)
             dependencies {

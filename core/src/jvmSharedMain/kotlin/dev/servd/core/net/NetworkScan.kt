@@ -7,7 +7,7 @@ import java.net.NetworkInterface
  * Enumerates the host's real network interfaces (JVM `java.net`) and maps them into the
  * platform-agnostic [NetAddress] shape that [LanAddressSelector] ranks.
  *
- * Lives in `jvmSharedMain` so BOTH JVM targets — Android and desktop — use the exact same
+ * Lives in `jvmSharedMain` so BOTH JVM targets - Android and desktop - use the exact same
  * enumeration. Interfaces are classified by address, never by OS-specific naming.
  */
 fun enumerateAddresses(): List<NetAddress> {

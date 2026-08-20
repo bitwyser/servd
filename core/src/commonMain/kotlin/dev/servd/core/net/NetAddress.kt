@@ -13,7 +13,7 @@ data class NetAddress(
     val interfaceName: String,
     val isIPv4: Boolean,
     val isLoopback: Boolean,
-    /** True for RFC 1918 private ranges (192.168/16, 10/8, 172.16/12) — i.e. a real LAN address. */
+    /** True for RFC 1918 private ranges (192.168/16, 10/8, 172.16/12) - i.e. a real LAN address. */
     val isSiteLocal: Boolean,
     val isUp: Boolean,
     /** The OS flagged the interface itself as virtual (a sub-interface). */

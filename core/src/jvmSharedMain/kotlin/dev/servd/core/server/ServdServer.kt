@@ -28,7 +28,7 @@ import io.ktor.websocket.readText
  * later phases add WebSocket chat, presence, and file sharing on the same server.
  *
  * The routing/module and TLS wiring here are engine-agnostic; the concrete Ktor engine is
- * passed in by each platform — Netty on desktop (Ktor CIO does not support server HTTPS).
+ * passed in by each platform - Netty on desktop (Ktor CIO does not support server HTTPS).
  * Lives in `jvmSharedMain` so the same server logic runs on desktop now and Android later.
  */
 class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration>(
@@ -90,7 +90,7 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                     chatHub.onDisconnect(id)
                 }
             }
-            // Machine-readable status — includes the cert fingerprint for verification.
+            // Machine-readable status - includes the cert fingerprint for verification.
             get("/status") {
                 val json = buildString {
                     append('{')
