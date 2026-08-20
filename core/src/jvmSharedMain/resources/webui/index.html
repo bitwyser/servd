@@ -69,11 +69,13 @@
   .icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
   .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
   .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* uniform header control height */
+  .status-pill, .host-chip, .namebox input { height: 32px; }
 
   /* ---------- grid ---------- */
   .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 246px minmax(0, 1fr) 400px; gap: 14px; }
   .grid.no-rail { grid-template-columns: 246px minmax(0, 1fr); }
-  .grid > * { min-height: 0; }
+  .grid > * { min-width: 0; min-height: 0; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
   .panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .panel-title { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -121,7 +123,9 @@
   .composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
   .composer textarea { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; color: var(--ink); font-family: var(--sans); font-size: 13.5px; line-height: 1.4; min-width: 0; resize: none; height: 40px; max-height: 120px; overflow-y: auto; }
   .composer textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  .send { background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 10px 14px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; }
+  /* uniform composer control height: textarea, attach button and send all 40px */
+  .composer .icon-btn { width: 40px; height: 40px; }
+  .send { height: 40px; background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 0 16px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; }
   .send:hover { filter: brightness(1.05); }
   .send:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -181,19 +185,35 @@
   .foot { flex: 0 0 auto; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--faint); margin: 0; }
 
   @media (max-width: 980px) {
+    /* stack to one column; the page scrolls instead of each panel being fixed height */
     body { height: auto; overflow: auto; }
     .app { height: auto; min-height: 100dvh; }
     .grid, .grid.no-rail { grid-template-columns: 1fr; }
-    #roster { max-height: 34vh; }
     .center { min-height: 60vh; }
     .rail { overflow: visible; }
+    .svc-panel { flex: none; }
+    .svc-panel #svcList { overflow-y: visible; }
   }
-  @media (max-width: 560px) {
-    .app { padding: 12px; }
-    .topbar { gap: 8px 10px; }
-    .uptime, .vtag { display: none; }
-    .namebox { order: 3; flex: 1 1 100%; }
+  @media (max-width: 700px) {
+    .app { padding: 12px; gap: 12px; }
+    .topbar { gap: 8px 10px; padding: 10px 12px; }
+    .brand { font-size: 15px; }
+    .uptime { display: none; }
+    /* name input drops to its own full-width row */
+    .namebox { order: 9; flex: 1 1 100%; }
     .namebox input { flex: 1; width: auto; }
+    /* devices become a compact horizontal strip so chat gets the vertical space */
+    .devices .panel-head { border-bottom: 0; padding-bottom: 4px; }
+    #roster { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 12px; }
+    .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px; gap: 8px; }
+    .dev-ip { display: none; }
+    .dev-name { max-width: 130px; }
+    .center { min-height: 66vh; }
+    .chat-log { padding: 12px; }
+  }
+  @media (max-width: 420px) {
+    .host-chip { font-size: 11px; padding: 6px 8px; }
+    .dev-name { max-width: 100px; }
   }
   @media (prefers-reduced-motion: reduce) { .cursor, .dot.live { animation: none; } * { transition: none !important; } }
 </style>

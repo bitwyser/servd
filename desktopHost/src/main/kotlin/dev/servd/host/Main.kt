@@ -64,7 +64,7 @@ fun main(args: Array<String>) {
         password = servdPassword,
     )
     val server = ServdServer(
-        Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(sshService, ftpService),
+        Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(ftpService, sshService),
         hostName = hostName(),
         interfaceName = lan?.interfaceName,
     )
