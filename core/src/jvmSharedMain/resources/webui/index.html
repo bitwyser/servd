@@ -50,7 +50,7 @@
   .brand .prompt { color: var(--accent); }
   .cursor { width: 8px; height: 16px; background: var(--accent); display: inline-block; border-radius: 1px; animation: blink 1.15s steps(1) infinite; transform: translateY(2px); }
   @keyframes blink { 50% { opacity: 0; } }
-  .vtag { font-family: var(--mono); font-size: 11px; color: var(--faint); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .vtag { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--faint); }
   .status-pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; padding: 4px 11px; }
   .status-pill.down { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
@@ -58,7 +58,6 @@
   .status-pill.down .dot { background: var(--warn); box-shadow: none; animation: none; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent); } }
   .uptime { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .tagline { font-family: var(--mono); font-size: 11px; color: var(--faint); }
   .spacer { flex: 1 1 auto; }
   .namebox { display: inline-flex; align-items: center; gap: 7px; }
   .namebox label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
@@ -192,7 +191,6 @@
 
   .foot { flex: 0 0 auto; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--faint); margin: 0; }
 
-  @media (max-width: 1180px) { .tagline { display: none; } }
   @media (max-width: 980px) {
     /* stack to one column; the page scrolls instead of each panel being fixed height */
     body { height: auto; overflow: auto; }
@@ -230,9 +228,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span></div>
-      <span class="vtag" id="vtag"></span>
-      <span class="tagline">local-network server tool &middot; everything on the wire is encrypted</span>
+      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span><span class="vtag" id="vtag"></span></div>
       <span class="status-pill" id="statusPill"><span class="dot" id="dot"></span><span id="statusText">connecting...</span></span>
       <span class="uptime" id="uptime"></span>
       <span class="spacer"></span>
