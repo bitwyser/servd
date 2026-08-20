@@ -158,6 +158,7 @@
   .v { font-family: var(--mono); font-size: 13px; color: var(--ink); word-break: break-all; }
   .fingerprint { display: flex; align-items: center; gap: 8px; }
   .fingerprint .v { font-size: 11.5px; color: var(--muted); }
+  .qr { width: 150px; height: 150px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px; align-self: flex-start; }
   .copy { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); cursor: pointer; flex-shrink: 0; }
   .copy:hover { color: var(--accent-ink); border-color: var(--accent); }
   .svc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
@@ -285,6 +286,9 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
               </button>
             </div>
+          </div>
+          <div class="kv"><span class="k">Scan to join</span>
+            <img class="qr" id="qr" alt="Scan to open the hub on another device" width="150" height="150" />
           </div>
         </section>
         <section class="panel svc-panel">
@@ -452,7 +456,7 @@
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); })
+      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); if(!$("qr").src) $("qr").src="/qr"; })
       .catch(()=>{ $("rail").hidden=true; $("grid").classList.add("no-rail"); });
   }
 

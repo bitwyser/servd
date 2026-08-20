@@ -8,6 +8,7 @@ slf4j = "2.0.16"
 jmdns = "3.5.9"
 sshd = "2.13.2"
 ftpserver = "1.2.0"
+zxing = "3.5.3"
 jvmTarget = "17"
 android-compileSdk = "35"
 android-minSdk = "24"
@@ -20,6 +21,7 @@ ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 ktor-network-tls-certificates = { module = "io.ktor:ktor-network-tls-certificates", version.ref = "ktor" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
 sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "sshd" }

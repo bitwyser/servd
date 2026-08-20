@@ -41,6 +41,7 @@ kotlin {
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.network.tls.certificates)
+                implementation(libs.zxing.core)
             }
         }
         val androidMain by getting {

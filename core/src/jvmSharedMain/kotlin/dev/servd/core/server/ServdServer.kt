@@ -6,6 +6,7 @@ import dev.servd.core.chat.ChatSend
 import dev.servd.core.chat.FileMeta
 import dev.servd.core.chat.Hello
 import dev.servd.core.files.FileStore
+import dev.servd.core.qr.Qr
 import dev.servd.core.service.HttpService
 import dev.servd.core.service.Service
 import dev.servd.core.service.ServiceManager
@@ -141,6 +142,10 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                     append('}')
                 }
                 call.respondText(json, ContentType.Application.Json)
+            }
+            // QR code (SVG) encoding the shareable hub URL, so a phone can scan to join.
+            get("/qr") {
+                call.respondText(Qr.svg("$url/"), ContentType("image", "svg+xml"))
             }
             // File sharing: upload (multipart), list (newest first), download (by id).
             post("/files") {
