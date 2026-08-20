@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
     val bindHost = opts.host ?: "0.0.0.0"
     val dataDir = File(opts.dir ?: (System.getProperty("user.home") + File.separator + ".servd"))
 
-    println("${Servd.NAME} v${Servd.VERSION} - ${Servd.TAGLINE}")
+    println("${Servd.NAME} - ${Servd.TAGLINE}")
     if (opts.host == null && lan == null) {
         println("(no LAN address found - reachable at 127.0.0.1 only; connect Wi-Fi/hotspot for other devices)")
     }
@@ -97,7 +97,7 @@ fun main(args: Array<String>) {
             ),
         )
     }.isSuccess
-    Runtime.getRuntime().addShutdownHook(Thread { advertiser.stop(); server.stop() })
+    Runtime.getRuntime().addShutdownHook(Thread { println("\nshutting down..."); advertiser.stop(); server.stop() })
 
     println("Open that URL on any device on this network. The browser will warn about the")
     println("self-signed certificate - that's expected; verify the fingerprint above, then proceed.")
@@ -120,7 +120,7 @@ private fun runDiscover() {
         println("No servd hubs found. Make sure a hub is running on this network.")
     } else {
         println("Found ${hubs.size} hub(s):")
-        hubs.forEach { println("  ${it.url}   ${it.name}   v${it.version ?: "?"}") }
+        hubs.forEach { println("  ${it.url}   ${it.name}") }
     }
 }
 

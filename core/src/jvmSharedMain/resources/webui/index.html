@@ -50,7 +50,6 @@
   .brand .prompt { color: var(--accent); }
   .cursor { width: 8px; height: 16px; background: var(--accent); display: inline-block; border-radius: 1px; animation: blink 1.15s steps(1) infinite; transform: translateY(2px); }
   @keyframes blink { 50% { opacity: 0; } }
-  .vtag { font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--faint); }
   .status-pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; padding: 4px 11px; }
   .status-pill.down { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
@@ -228,7 +227,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span><span class="vtag" id="vtag"></span></div>
+      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span></div>
       <span class="status-pill" id="statusPill"><span class="dot" id="dot"></span><span id="statusText">connecting...</span></span>
       <span class="uptime" id="uptime"></span>
       <span class="spacer"></span>
@@ -365,7 +364,6 @@
   // ---- status / host card ----
   function loadStatus(){
     fetch("/status").then(r=>r.json()).then(s => {
-      $("vtag").textContent = "v" + s.version;
       $("hostUrl").textContent = s.address + ":" + s.port;
       $("uptime").textContent = fmtUptime(s.uptimeMs);
       lastConnected = s.connected;
