@@ -1,14 +1,14 @@
 # servd
 
 A portable **local-network server tool**. Run it on a laptop or (soon) a phone and it turns
-that device into a small hub other devices on the same Wi-Fi / hotspot can reach - starting
-with an encrypted dashboard, real-time chat, and a live roster of who's connected. FTP, SSH,
-and file sharing are on the roadmap.
+that device into a small hub other devices on the same Wi-Fi / hotspot can reach - an encrypted
+dashboard with real-time chat, a live roster of who's connected, and drag-n-drop file sharing.
+FTP and SSH servers are on the roadmap.
 
 Everything is served over **HTTPS/WSS** with a self-signed certificate (there's no public
 domain on a LAN, so you verify the connection by its **fingerprint** instead of a CA).
 
-> **Status:** early development. Phases 0-2 are done and usable on **desktop**
+> **Status:** early development. Phases 0-3 are done and usable on **desktop**
 > (Windows / Linux / macOS). The Android app currently only proves the shared core runs
 > (a "hello" screen) - it does **not** host servers yet. See [Roadmap](#roadmap).
 
@@ -19,6 +19,7 @@ domain on a LAN, so you verify the connection by its **fingerprint** instead of 
 - **HTTPS dashboard** bound to your LAN/hotspot IP on port **8443**
 - **Real-time chat** between everyone connected (over WSS)
 - **Connected-device roster** - see who's on the hub, live, with join/leave
+- **Drag-n-drop file sharing** - drop a file, it appears on every device instantly, download intact
 - **Self-signed TLS** with a printed **SHA-256 fingerprint** you can verify
 - **`/status`** JSON endpoint (version, address, fingerprint)
 - **CLI** to start it and auto-open the dashboard
@@ -142,7 +143,8 @@ LAN cert. Confirm the fingerprint shown in the page matches the one printed abov
 2. Open **`https://<the-address-shown>:8443`** (e.g. `https://10.205.210.12:8443`) in its
    browser.
 3. Accept the certificate warning, set a display name, and start chatting. Each connected
-   device appears in the **Devices** roster.
+   device appears in the **Devices** roster. Switch to the **Files** tab to drag-n-drop a file
+   to everyone.
 
 ### CLI options
 
@@ -235,8 +237,8 @@ Built in self-contained phases; each is independently runnable.
 | 0.5 | Hello world on desktop + Android (shared core) | ✅ |
 | 1 | HTTPS server, self-signed TLS, dashboard shell, CLI | ✅ |
 | 2 | Real-time chat + connected-device roster | ✅ |
-| 3 | Drag-n-drop file sharing | ▫️ next |
-| 4 | mDNS auto-discovery of hubs | ▫️ |
+| 3 | Drag-n-drop file sharing | ✅ |
+| 4 | mDNS auto-discovery of hubs | ▫️ next |
 | 5 | Service manager + host-only admin panel | ▫️ |
 | 6 | Optional SSH server | ▫️ |
 | 7 | Optional FTPS server | ▫️ |
