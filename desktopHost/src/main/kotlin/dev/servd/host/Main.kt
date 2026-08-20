@@ -65,6 +65,8 @@ fun main(args: Array<String>) {
     )
     val server = ServdServer(
         Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(sshService, ftpService),
+        hostName = hostName(),
+        interfaceName = lan?.interfaceName,
     )
 
     // When bound to all interfaces, the host reaches admin via loopback; a specific --host

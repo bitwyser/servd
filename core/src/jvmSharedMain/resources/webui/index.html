@@ -5,372 +5,467 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>servd</title>
 <style>
+  /* ---------- tokens: light (bare :root) ---------- */
   :root {
-    --bg: #0D1316; --surface: #141D21; --surface-2: #1A252A; --border: #263136;
+    --bg: #E9EEEF; --surface: #FFFFFF; --surface-2: #F1F5F6; --border: #D7DFE1; --border-strong: #C2CDD0;
+    --ink: #0F1A1F; --muted: #566A70; --faint: #849499;
+    --accent: #0E9E88; --accent-ink: #0A7563; --accent-soft: #D6EFEA;
+    --idle: #93A2A7; --error: #D14A43; --warn: #B9770E;
+    --shadow: 0 1px 2px rgba(15,26,31,.06), 0 8px 24px rgba(15,26,31,.06);
+    --shadow-sm: 0 1px 2px rgba(15,26,31,.07);
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    --r: 10px; --r-sm: 7px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1316; --surface: #141D21; --surface-2: #1A252A; --border: #253136; --border-strong: #35474E;
+      --ink: #E6EDEF; --muted: #90A3AA; --faint: #647A81;
+      --accent: #22C3A6; --accent-ink: #7BEBD8; --accent-soft: #113029;
+      --idle: #5D7178; --error: #EE7169; --warn: #DFA24E;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1316; --surface: #141D21; --surface-2: #1A252A; --border: #253136; --border-strong: #35474E;
     --ink: #E6EDEF; --muted: #90A3AA; --faint: #647A81;
     --accent: #22C3A6; --accent-ink: #7BEBD8; --accent-soft: #113029;
-    --idle: #5D7178; --warn: #DFA24E;
-    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --idle: #5D7178; --error: #EE7169; --warn: #DFA24E;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    color-scheme: dark;
   }
+
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
-    font-size: 14px; display: flex; flex-direction: column;
-    height: 100vh; height: 100dvh; /* dvh keeps the composer above mobile browser chrome */
-    overflow-x: hidden;
-  }
-  header {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--surface);
-  }
-  .brand { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-weight: 600; font-size: 17px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .app { max-width: 1240px; margin: 0 auto; padding: 18px; }
+
+  /* ---------- top bar ---------- */
+  .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 16px; box-shadow: var(--shadow-sm); }
+  .brand { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
   .brand .prompt { color: var(--accent); }
-  .conn { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); }
-  .dot.on { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .spacer { flex: 1; }
-  .namebox { display: flex; align-items: center; gap: 8px; }
+  .cursor { width: 8px; height: 16px; background: var(--accent); display: inline-block; border-radius: 1px; animation: blink 1.15s steps(1) infinite; transform: translateY(2px); }
+  @keyframes blink { 50% { opacity: 0; } }
+  .vtag { font-family: var(--mono); font-size: 11px; color: var(--faint); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+  .status-pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; padding: 4px 11px; }
+  .status-pill.down { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .dot.live { animation: pulse 2s ease-in-out infinite; }
+  .status-pill.down .dot { background: var(--warn); box-shadow: none; animation: none; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent); } }
+  .uptime { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .spacer { flex: 1 1 auto; }
+  .namebox { display: inline-flex; align-items: center; gap: 7px; }
   .namebox label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-  .namebox input {
-    background: var(--surface-2); border: 1px solid var(--border); color: var(--ink);
-    font-family: var(--mono); font-size: 13px; border-radius: 8px; padding: 6px 10px; width: 150px;
-  }
+  .namebox input { background: var(--surface-2); border: 1px solid var(--border); color: var(--ink); font-family: var(--mono); font-size: 12.5px; border-radius: 8px; padding: 5px 9px; width: 130px; }
   .namebox input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .host-chip { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+  .host-chip .lock { color: var(--accent); display: inline-flex; }
+  .chip-warn { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); border-radius: 6px; padding: 2px 7px; }
+  .icon-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+  .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  main { flex: 1; display: grid; grid-template-columns: 250px 1fr; min-height: 0; }
-  aside { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
-  .panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  /* ---------- grid ---------- */
+  .grid { display: grid; grid-template-columns: 246px 1fr 316px; gap: 14px; margin-top: 14px; align-items: start; }
+  .grid.no-rail { grid-template-columns: 246px 1fr; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+  .panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .panel-title { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  .count { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border-radius: 20px; padding: 1px 8px; }
-  .roster { overflow-y: auto; }
-  .peer { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-  .ava { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 700; color: #04150F; }
-  .pmeta { min-width: 0; flex: 1; }
-  .pname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .paddr { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-  .tag-you { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
-  .empty { padding: 18px 16px; font-family: var(--mono); font-size: 12px; color: var(--faint); line-height: 1.5; }
+  .count { font-family: var(--mono); font-size: 11px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 20px; padding: 1px 8px; font-weight: 700; }
 
-  .content { display: flex; flex-direction: column; min-height: 0; }
-  .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+  /* ---------- devices ---------- */
+  .devices { display: flex; flex-direction: column; }
+  .dev { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .dev:last-child { border-bottom: 0; }
+  .ava { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 700; color: #fff; }
+  .dev-meta { min-width: 0; flex: 1; }
+  .dev-name { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dev-ip { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .presence { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--accent); }
+  .tag-you { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+  .dev-empty { padding: 16px 14px; font-family: var(--mono); font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+  /* ---------- center ---------- */
+  .center { display: flex; flex-direction: column; min-height: 560px; }
+  .tabs { display: flex; gap: 2px; padding: 8px 8px 0; border-bottom: 1px solid var(--border); }
   .tab { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--muted); background: transparent; border: 0; cursor: pointer; padding: 9px 14px; border-radius: 8px 8px 0 0; position: relative; }
   .tab:hover { color: var(--ink); }
   .tab[aria-selected="true"] { color: var(--accent-ink); }
   .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px; }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .tab .badge { font-family: var(--mono); font-size: 10px; color: var(--accent-ink); background: var(--accent-soft); border-radius: 20px; padding: 0 6px; margin-left: 6px; }
-
   .view { display: none; flex: 1; flex-direction: column; min-height: 0; }
   .view.active { display: flex; }
 
-  .log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-  .msg { display: flex; flex-direction: column; gap: 2px; max-width: 80%; }
+  /* chat */
+  .chat-log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { display: flex; flex-direction: column; gap: 2px; max-width: 82%; }
   .msg.me { align-self: flex-end; align-items: flex-end; }
-  .mhead { display: flex; align-items: baseline; gap: 8px; }
-  .mwho { font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
-  .mtime { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+  .msg-head { display: flex; align-items: baseline; gap: 8px; }
+  .msg-who { font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+  .msg-time { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
   .bubble { background: var(--surface-2); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px 12px 12px 12px; font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
   .msg.me .bubble { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 26%, transparent); border-radius: 12px 4px 12px 12px; }
   .sys { align-self: center; font-family: var(--mono); font-size: 11px; color: var(--faint); text-align: center; }
+  .file-msg { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+  .file-msg .fi { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--border); color: var(--accent); flex-shrink: 0; }
+  .composer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .composer input[type=text] { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--ink); font-family: var(--sans); font-size: 13.5px; min-width: 0; }
+  .composer input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .send { background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 10px 14px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; }
+  .send:hover { filter: brightness(1.05); }
+  .send:disabled { opacity: .5; cursor: not-allowed; }
 
-  .composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--surface); }
-  .composer input { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 11px 13px; color: var(--ink); font-family: var(--sans); font-size: 14px; }
-  .composer input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  .composer button { background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 0 18px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; }
-  .composer button:disabled { opacity: .5; cursor: not-allowed; }
-
-  .files-wrap { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-  .drop { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
-    border: 1.5px dashed var(--border); border-radius: 12px; padding: 26px; color: var(--muted); background: var(--surface); }
-  .drop:hover, .drop.over { border-color: var(--accent); color: var(--ink); background: var(--surface-2); }
+  /* files */
+  .files-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .drop { border: 1.5px dashed var(--border-strong); border-radius: var(--r); padding: 26px; text-align: center; color: var(--muted); background: var(--surface-2); display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--ink); }
+  .drop .big { color: var(--accent); }
   .drop strong { font-family: var(--mono); font-weight: 700; color: var(--ink); }
   .drop small { font-family: var(--mono); color: var(--faint); }
-  .drop .up { color: var(--accent); font-size: 22px; line-height: 1; }
   .flist { display: flex; flex-direction: column; gap: 8px; }
-  .frow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
-  .ficon { width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .fmeta { flex: 1; min-width: 0; }
-  .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .fsub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-  .fsize { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); text-decoration: none; font-size: 16px; }
+  .frow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
+  .frow .fi { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); flex-shrink: 0; }
+  .frow .fmeta { flex: 1; min-width: 0; }
+  .frow .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frow .fsub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .frow .fsize { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); cursor: pointer; text-decoration: none; }
   .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
-  .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 8px; }
+  .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 10px; }
 
-  .admin-wrap { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-  .host-card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  /* ---------- right rail ---------- */
+  .rail { display: flex; flex-direction: column; gap: 14px; }
+  .host-card { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
   .kv { display: flex; flex-direction: column; gap: 3px; }
-  .kv .k { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-  .kv .v { font-family: var(--mono); font-size: 12.5px; color: var(--ink); word-break: break-all; }
-  .svc { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+  .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .v { font-family: var(--mono); font-size: 13px; color: var(--ink); word-break: break-all; }
+  .fingerprint { display: flex; align-items: center; gap: 8px; }
+  .fingerprint .v { font-size: 11.5px; color: var(--muted); }
+  .copy { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); cursor: pointer; flex-shrink: 0; }
+  .copy:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .svc { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .svc:last-of-type { border-bottom: 0; }
+  .svc-ico { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
+  .svc.up .svc-ico { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-soft); }
   .svc-meta { flex: 1; min-width: 0; }
-  .svc-name { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-  .svc-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-  .state { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
-  .state.running { color: var(--accent-ink); background: var(--accent-soft); }
-  .state.stopped, .state.error, .state.starting { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); }
-  .switch { position: relative; width: 40px; height: 23px; flex-shrink: 0; }
+  .svc-name { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 13.5px; font-weight: 700; }
+  .svc-name .lock { color: var(--accent); display: inline-flex; }
+  .svc-sub { font-family: var(--mono); font-size: 11px; color: var(--faint); word-break: break-word; }
+  .svc-state { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+  .st-up { color: var(--accent-ink); background: var(--accent-soft); }
+  .st-down { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); }
+  .switch { position: relative; width: 40px; height: 23px; flex-shrink: 0; cursor: pointer; }
   .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-  .switch .track { position: absolute; inset: 0; border-radius: 20px; background: var(--idle); transition: background .15s; }
-  .switch .knob { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .track { position: absolute; inset: 0; border-radius: 20px; background: var(--idle); transition: background .18s; }
+  .knob { position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .18s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
   .switch input:checked + .track { background: var(--accent); }
   .switch input:checked + .track + .knob { transform: translateX(17px); }
-  .switch input:disabled { cursor: not-allowed; }
-  .switch input:disabled + .track { opacity: .45; }
-  .admin-note { font-family: var(--mono); font-size: 11px; color: var(--faint); line-height: 1.5; }
+  .switch input:disabled { cursor: default; }
+  .switch input:disabled + .track { opacity: .5; }
+  .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .rail-note { font-family: var(--mono); font-size: 11px; color: var(--faint); padding: 10px 14px; display: flex; gap: 7px; align-items: flex-start; line-height: 1.45; }
+  .rail-note .lock { color: var(--muted); flex-shrink: 0; margin-top: 1px; }
 
-  @media (max-width: 720px) {
-    header { gap: 8px 12px; padding: 10px 14px; }
-    .brand { font-size: 16px; }
-    /* name input drops to its own full-width row instead of a fixed 150px box */
-    .namebox { flex: 1 1 100%; }
-    .namebox input { flex: 1; width: auto; min-width: 0; }
-    main { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-    aside { border-right: 0; border-bottom: 1px solid var(--border); max-height: 34vh; }
-    .log, .files-wrap, .admin-wrap { padding: 12px; }
-    .msg { max-width: 88%; }
+  .foot { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--faint); margin: 18px 0 4px; }
+
+  @media (max-width: 980px) {
+    .grid, .grid.no-rail { grid-template-columns: 1fr; }
+    .center { min-height: 60vh; }
   }
-  @media (max-width: 380px) {
-    header { padding: 9px 12px; }
-    .conn { font-size: 11px; }
-    .tab { padding: 9px 11px; }
+  @media (max-width: 560px) {
+    .app { padding: 12px; }
+    .topbar { gap: 8px 10px; }
+    .uptime, .vtag { display: none; }
+    .namebox { order: 3; flex: 1 1 100%; }
+    .namebox input { flex: 1; width: auto; }
   }
+  @media (prefers-reduced-motion: reduce) { .cursor, .dot.live { animation: none; } * { transition: none !important; } }
 </style>
 </head>
 <body>
-  <header>
-    <div class="brand"><span class="prompt">~/</span>servd</div>
-    <span class="conn"><span class="dot" id="connDot"></span><span id="connText">connecting...</span></span>
-    <span class="spacer"></span>
-    <div class="namebox">
-      <label for="name">you</label>
-      <input id="name" maxlength="40" spellcheck="false" autocomplete="off" />
-    </div>
-  </header>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span></div>
+      <span class="vtag" id="vtag">v0.1.0</span>
+      <span class="status-pill" id="statusPill"><span class="dot" id="dot"></span><span id="statusText">connecting...</span></span>
+      <span class="uptime" id="uptime"></span>
+      <span class="spacer"></span>
+      <span class="namebox"><label for="name">you</label><input id="name" maxlength="40" spellcheck="false" autocomplete="off" /></span>
+      <span class="host-chip"><span class="lock" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span id="hostUrl">-</span></span>
+      <span class="chip-warn" title="Self-signed certificate - verify the fingerprint">self-signed</span>
+      <button class="icon-btn" id="theme" aria-label="Toggle light / dark theme" title="Toggle light / dark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+      </button>
+    </header>
 
-  <main>
-    <aside>
-      <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
-      <div class="roster" id="roster"></div>
-    </aside>
+    <div class="grid no-rail" id="grid">
+      <!-- devices -->
+      <section class="panel devices" aria-label="Connected devices">
+        <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
+        <div id="roster"><div class="dev-empty">No devices yet.</div></div>
+      </section>
 
-    <section class="content">
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" data-view="chat" aria-selected="true">chat</button>
-        <button class="tab" role="tab" data-view="files" aria-selected="false">files<span class="badge" id="fbadge" style="display:none">0</span></button>
-        <button class="tab" role="tab" data-view="admin" id="tab-admin" aria-selected="false" style="display:none">admin</button>
-      </div>
-
-      <div class="view active" id="view-chat" role="tabpanel">
-        <div class="log" id="log"></div>
-        <form class="composer" id="composer" autocomplete="off">
-          <input id="text" placeholder="Message the hub...  (encrypted over WSS)" autocomplete="off" />
-          <button type="submit" id="send" disabled>send</button>
-        </form>
-      </div>
-
-      <div class="view" id="view-files" role="tabpanel">
-        <div class="files-wrap">
-          <label class="drop" id="drop">
-            <input type="file" id="fileInput" multiple hidden />
-            <span class="up">&#8593;</span>
-            <strong>Drag files here to share</strong>
-            <small>or click to browse - sent to every device on the hub</small>
-          </label>
-          <div class="flist" id="flist"><div class="files-empty">No files shared yet.</div></div>
+      <!-- center: chat / files -->
+      <section class="panel center" aria-label="Chat and files">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-view="chat">chat</button>
+          <button class="tab" role="tab" aria-selected="false" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
         </div>
-      </div>
 
-      <div class="view" id="view-admin" role="tabpanel">
-        <div class="admin-wrap">
-          <div class="host-card">
-            <div class="kv"><span class="k">this host</span><span class="v" id="admHost">-</span></div>
-            <div class="kv"><span class="k">tls fingerprint (sha-256)</span><span class="v" id="admFp">-</span></div>
+        <div class="view active" id="view-chat" role="tabpanel">
+          <div class="chat-log" id="log"></div>
+          <form class="composer" id="composer" autocomplete="off">
+            <button type="button" class="icon-btn" id="attach" aria-label="Share a file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 18.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
+            </button>
+            <input type="text" id="text" placeholder="Message the hub...  (encrypted over WSS)" aria-label="Message" />
+            <button class="send" type="submit" id="send" disabled>send
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+            </button>
+          </form>
+        </div>
+
+        <div class="view" id="view-files" role="tabpanel">
+          <div class="files-wrap">
+            <label class="drop" id="drop">
+              <input type="file" id="fileInput" multiple hidden />
+              <span class="big"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></span>
+              <strong>Drag files here to share</strong>
+              <small>or click to browse - sent to every device on the hub</small>
+            </label>
+            <div class="flist" id="flist"><div class="files-empty">No files shared yet.</div></div>
           </div>
-          <div class="panel-title" style="padding:2px">Servers</div>
-          <div id="svcList" style="display:flex;flex-direction:column;gap:8px"></div>
-          <div class="admin-note">This panel is served on 127.0.0.1 - it is visible on the host machine only. Other devices on the network see the dashboard but not these controls.</div>
         </div>
-      </div>
-    </section>
-  </main>
+      </section>
+
+      <!-- right rail: host + servers (host machine only) -->
+      <aside class="rail" id="rail" aria-label="Host and servers" hidden>
+        <section class="panel host-card">
+          <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
+          <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
+          <div class="kv"><span class="k">TLS fingerprint (SHA-256)</span>
+            <div class="fingerprint"><span class="v" id="admFp">-</span>
+              <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><span class="panel-title">Servers</span></div>
+          <div id="svcList"></div>
+          <div class="rail-note">
+            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+            Server toggles are visible on the host only - this panel is served on 127.0.0.1.
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="foot">servd &middot; local-network server tool &middot; everything on the wire is encrypted</div>
+  </div>
 
 <script>
-  const COLORS = ["#22C3A6","#3B82F6","#E0864B","#A855F7","#EC4899","#EAB308","#10B981","#F43F5E"];
-  const $ = id => document.getElementById(id);
-  const log = $("log"), roster = $("roster"), count = $("count");
-  const connDot = $("connDot"), connText = $("connText"), sendBtn = $("send");
-  const nameInput = $("name"), textInput = $("text");
-  const flist = $("flist"), fbadge = $("fbadge"), drop = $("drop"), fileInput = $("fileInput");
-  const tabAdmin = $("tab-admin"), svcList = $("svcList");
+  const COLORS = ["#0E9E88","#3B6FE0","#C0603A","#7A57C2","#C4396F","#B8860B","#0E9E88","#D14A43"];
+  const LOCK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  const FILEICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/></svg>';
+  const DLICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m0 0-4-4m4 4 4-4"/><path d="M5 20h14"/></svg>';
+  const SVCICON = {
+    http: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>',
+    ssh:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>',
+    ftp:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'
+  };
 
-  let name = localStorage.getItem("servd-name") || ("guest-" + Math.floor(1000 + Math.random() * 9000));
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  const colorFor = s => COLORS[[...String(s)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
+  const initials = s => String(s).replace(/[^a-zA-Z0-9]/g," ").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "?";
+  const time = ts => new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  const ext = n => { const p = String(n).lastIndexOf("."); return p>0 ? n.slice(p+1,p+5).toUpperCase() : "FILE"; };
+  function fmtSize(b){ if(b<1024) return b+" B"; const u=["KB","MB","GB"]; let i=-1; do{ b/=1024; i++; }while(b>=1024&&i<u.length-1); return b.toFixed(b<10?1:0)+" "+u[i]; }
+  function fmtUptime(ms){ const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60); return h>0 ? `up ${h}h ${m}m` : `up ${m}m`; }
+
+  const log=$("log"), roster=$("roster"), count=$("count"), flist=$("flist"), fbadge=$("fbadge");
+  const textInput=$("text"), sendBtn=$("send"), nameInput=$("name"), fileInput=$("fileInput"), drop=$("drop");
+  const dot=$("dot"), statusPill=$("statusPill"), statusText=$("statusText");
+
+  let name = localStorage.getItem("servd-name") || ("guest-" + Math.floor(1000 + Math.random()*9000));
   nameInput.value = name;
-  let selfId = null, ws = null, retry = null;
+  let selfId=null, ws=null, retry=null, lastConnected=0;
   const files = new Map();
 
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const colorFor = s => COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
-  const initials = s => s.replace(/[^a-zA-Z0-9]/g, " ").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
-  const time = ts => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-  const scroll = () => { log.scrollTop = log.scrollHeight; };
-  const ext = n => { const p = n.lastIndexOf("."); return p > 0 ? n.slice(p + 1, p + 5).toUpperCase() : "FILE"; };
-  function fmtSize(b) {
-    if (b < 1024) return b + " B";
-    const u = ["KB", "MB", "GB"]; let i = -1;
-    do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
-    return b.toFixed(b < 10 ? 1 : 0) + " " + u[i];
+  // theme
+  (function(){ const t=localStorage.getItem("servd-theme"); if(t) document.documentElement.setAttribute("data-theme",t); })();
+  $("theme").addEventListener("click", () => {
+    const isDark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const cur = document.documentElement.getAttribute("data-theme") || (isDark ? "dark":"light");
+    const next = cur==="dark" ? "light":"dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("servd-theme", next);
+  });
+
+  function setConn(on){
+    dot.classList.toggle("live", on);
+    statusPill.classList.toggle("down", !on);
+    statusText.textContent = on ? "daemon running" : "reconnecting...";
+    sendBtn.disabled = !on;
   }
 
-  function setConn(on, label) { connDot.classList.toggle("on", on); connText.textContent = label; sendBtn.disabled = !on; }
+  // ---- status / host card ----
+  function loadStatus(){
+    fetch("/status").then(r=>r.json()).then(s => {
+      $("vtag").textContent = "v" + s.version;
+      $("hostUrl").textContent = s.address + ":" + s.port;
+      $("uptime").textContent = fmtUptime(s.uptimeMs);
+      lastConnected = s.connected;
+      if (!$("rail").hidden) {
+        $("admHost").textContent = s.hostName || s.address;
+        $("admIface").textContent = (s.interfaceName ? s.interfaceName + " · " : "") + s.address;
+        $("admFp").textContent = s.fingerprintSha256;
+      }
+    }).catch(()=>{});
+  }
 
   // ---- roster ----
-  function renderRoster(peers) {
+  function renderRoster(peers){
     count.textContent = peers.length;
+    if (!peers.length){ roster.innerHTML = '<div class="dev-empty">No devices yet. Open this page on another device on the same network.</div>'; return; }
     roster.innerHTML = "";
-    if (!peers.length) {
-      roster.innerHTML = '<div class="empty">No devices yet. Open this page on another device on the same network to see it here.</div>';
-      return;
-    }
-    for (const p of peers) {
-      const row = document.createElement("div"); row.className = "peer";
-      const you = p.id === selfId ? ' <span class="tag-you">you</span>' : "";
+    for (const p of peers){
+      const you = p.id===selfId ? ' <span class="tag-you">you</span>' : "";
+      const row = document.createElement("div"); row.className="dev";
       row.innerHTML =
-        '<div class="ava" style="background:' + colorFor(p.name) + '">' + initials(p.name) + '</div>' +
-        '<div class="pmeta"><div class="pname">' + esc(p.name) + you + '</div><div class="paddr">' + esc(p.address) + '</div></div>';
+        '<div class="ava" style="background:'+colorFor(p.name)+'">'+initials(p.name)+'</div>'+
+        '<div class="dev-meta"><div class="dev-name">'+esc(p.name)+you+'</div><div class="dev-ip">'+esc(p.address)+'</div></div>'+
+        '<span class="presence"></span>';
       roster.appendChild(row);
     }
   }
 
   // ---- chat ----
-  function addChat(fromId, fromName, text, ts) {
-    const stick = atBottom();
-    const el = document.createElement("div");
-    el.className = "msg" + (fromId === selfId ? " me" : "");
-    const who = fromId === selfId ? "you" : esc(fromName);
-    el.innerHTML =
-      '<div class="mhead"><span class="mwho" style="color:' + (fromId === selfId ? "var(--accent-ink)" : colorFor(fromName)) + '">' + who + '</span>' +
-      '<span class="mtime">' + time(ts) + '</span></div><div class="bubble">' + esc(text) + '</div>';
-    log.appendChild(el); if (stick) scroll();
+  const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  function addChat(fromId, fromName, text, ts){
+    const stick=atBottom(); const el=document.createElement("div"); el.className="msg"+(fromId===selfId?" me":"");
+    const who = fromId===selfId ? "you" : esc(fromName);
+    const col = fromId===selfId ? "var(--accent-ink)" : colorFor(fromName);
+    el.innerHTML = '<div class="msg-head"><span class="msg-who" style="color:'+col+'">'+who+'</span><span class="msg-time">'+time(ts)+'</span></div><div class="bubble">'+esc(text)+'</div>';
+    log.appendChild(el); if(stick) log.scrollTop=log.scrollHeight;
   }
-  function addSys(text) { const stick = atBottom(); const el = document.createElement("div"); el.className = "sys"; el.textContent = "- " + text + " -"; log.appendChild(el); if (stick) scroll(); }
+  function addSys(t){ const stick=atBottom(); const el=document.createElement("div"); el.className="sys"; el.textContent="- "+t+" -"; log.appendChild(el); if(stick) log.scrollTop=log.scrollHeight; }
+  function addFileMsg(f){
+    const stick=atBottom(); const mine=f.fromName===name;
+    const el=document.createElement("div"); el.className="msg"+(mine?" me":"");
+    const who = mine ? "you" : esc(f.fromName);
+    const col = mine ? "var(--accent-ink)" : colorFor(f.fromName);
+    el.innerHTML = '<div class="msg-head"><span class="msg-who" style="color:'+col+'">'+who+'</span><span class="msg-time">'+time(f.ts)+'</span></div>'+
+      '<a class="bubble file-msg" href="/files/'+encodeURIComponent(f.id)+'" download="'+esc(f.name)+'"><span class="fi">'+FILEICON+'</span>shared <b>'+esc(f.name)+'</b> &middot; '+fmtSize(f.size)+'</a>';
+    log.appendChild(el); if(stick) log.scrollTop=log.scrollHeight;
+  }
 
   // ---- files ----
-  function renderFiles() {
-    const items = [...files.values()].sort((a, b) => b.ts - a.ts);
-    fbadge.style.display = items.length ? "" : "none";
-    fbadge.textContent = items.length;
-    if (!items.length) { flist.innerHTML = '<div class="files-empty">No files shared yet.</div>'; return; }
-    flist.innerHTML = "";
-    for (const f of items) {
-      const row = document.createElement("div"); row.className = "frow";
-      row.innerHTML =
-        '<div class="ficon">' + esc(ext(f.name)) + '</div>' +
-        '<div class="fmeta"><div class="fname">' + esc(f.name) + '</div>' +
-        '<div class="fsub">from ' + esc(f.fromName) + ' &middot; ' + time(f.ts) + '</div></div>' +
-        '<span class="fsize">' + fmtSize(f.size) + '</span>' +
-        '<a class="dl" href="/files/' + encodeURIComponent(f.id) + '" download="' + esc(f.name) + '" title="Download">&#8595;</a>';
+  function renderFiles(){
+    const items=[...files.values()].sort((a,b)=>b.ts-a.ts);
+    fbadge.style.display = items.length ? "" : "none"; fbadge.textContent=items.length;
+    if(!items.length){ flist.innerHTML='<div class="files-empty">No files shared yet.</div>'; return; }
+    flist.innerHTML="";
+    for(const f of items){
+      const row=document.createElement("div"); row.className="frow";
+      row.innerHTML='<span class="fi">'+esc(ext(f.name))+'</span>'+
+        '<div class="fmeta"><div class="fname">'+esc(f.name)+'</div><div class="fsub">from '+esc(f.fromName)+' &middot; '+time(f.ts)+'</div></div>'+
+        '<span class="fsize">'+fmtSize(f.size)+'</span>'+
+        '<a class="dl" href="/files/'+encodeURIComponent(f.id)+'" download="'+esc(f.name)+'" title="Download">'+DLICON+'</a>';
       flist.appendChild(row);
     }
   }
-  function addFile(f, announce) {
-    const isNew = !files.has(f.id);
-    files.set(f.id, f);
-    renderFiles();
-    if (isNew && announce) addSys(f.fromName + " shared " + f.name);
+  function addFile(f, announce){ const isNew=!files.has(f.id); files.set(f.id,f); renderFiles(); if(isNew&&announce) addFileMsg(f); }
+  function loadFiles(){ fetch("/files").then(r=>r.json()).then(list=>{ list.forEach(f=>files.set(f.id,f)); renderFiles(); }).catch(()=>{}); }
+  function upload(fileList){ for(const file of fileList){ const fd=new FormData(); fd.append("from",name); fd.append("file",file,file.name); fetch("/files",{method:"POST",body:fd}).catch(()=>addSys("upload failed: "+file.name)); } }
+
+  ["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over");}));
+  ["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop",ev=>{ if(ev.dataTransfer&&ev.dataTransfer.files.length) upload(ev.dataTransfer.files); });
+  fileInput.addEventListener("change",()=>{ if(fileInput.files.length){ upload(fileInput.files); fileInput.value=""; } });
+  $("attach").addEventListener("click",()=>fileInput.click());
+
+  // ---- admin (host only) ----
+  function svcSub(s){
+    if (s.id==="http") return ":"+s.port+" · dashboard, files, chat" + (lastConnected?(" · "+lastConnected+" connected"):"");
+    return ":"+s.port + (s.detail ? " · "+s.detail : "");
   }
-  function loadFiles() { fetch("/files").then(r => r.json()).then(list => { list.forEach(f => files.set(f.id, f)); renderFiles(); }).catch(() => {}); }
-
-  function upload(fileList) {
-    for (const file of fileList) {
-      const fd = new FormData();
-      fd.append("from", name);
-      fd.append("file", file, file.name);
-      fetch("/files", { method: "POST", body: fd }).catch(() => addSys("upload failed: " + file.name));
-    }
-  }
-
-  // drag + drop
-  ["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
-  ["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
-  drop.addEventListener("drop", ev => { if (ev.dataTransfer && ev.dataTransfer.files.length) upload(ev.dataTransfer.files); });
-  fileInput.addEventListener("change", () => { if (fileInput.files.length) { upload(fileInput.files); fileInput.value = ""; } });
-
-  // ---- admin (host-only; only present when reachable via loopback) ----
-  function renderServices(list) {
-    svcList.innerHTML = "";
-    for (const s of list) {
-      const running = s.state === "Running";
-      const row = document.createElement("div"); row.className = "svc";
-      const detail = s.detail && running ? '<div class="svc-sub" style="color:var(--muted)">' + esc(s.detail) + '</div>' : "";
+  function renderServices(list){
+    const el=$("svcList"); el.innerHTML="";
+    for(const s of list){
+      const up = s.state==="Running";
+      const row=document.createElement("div"); row.className="svc"+(up?" up":"");
       row.innerHTML =
-        '<div class="svc-meta"><div class="svc-name">' + esc(s.label) + '</div>' +
-        '<div class="svc-sub">' + esc(s.id) + ' &middot; :' + s.port + '</div>' + detail + '</div>' +
-        '<span class="state ' + esc(s.state.toLowerCase()) + '">' + esc(s.state) + '</span>' +
-        '<label class="switch"><input type="checkbox"' + (running ? " checked" : "") + (s.toggleable ? "" : " disabled") +
-        ' data-id="' + esc(s.id) + '"><span class="track"></span><span class="knob"></span></label>';
-      svcList.appendChild(row);
+        '<span class="svc-ico">'+(SVCICON[s.id]||SVCICON.http)+'</span>'+
+        '<div class="svc-meta"><div class="svc-name">'+esc(s.id)+' <span class="lock" title="encrypted">'+LOCK+'</span></div>'+
+        '<div class="svc-sub">'+esc(svcSub(s))+'</div></div>'+
+        '<span class="svc-state '+(up?"st-up":"st-down")+'">'+(up?"up":"off")+'</span>'+
+        '<label class="switch"><input type="checkbox"'+(up?" checked":"")+(s.toggleable?"":" disabled")+' data-id="'+esc(s.id)+'"><span class="track"></span><span class="knob"></span></label>';
+      el.appendChild(row);
     }
-    svcList.querySelectorAll("input[data-id]").forEach(cb => cb.addEventListener("change", () => {
-      const action = cb.checked ? "start" : "stop";
-      fetch("/admin/services/" + encodeURIComponent(cb.dataset.id) + "/" + action, { method: "POST" })
-        .then(r => r.json()).then(renderServices).catch(checkAdmin);
+    el.querySelectorAll("input[data-id]").forEach(cb=>cb.addEventListener("change",()=>{
+      const action=cb.checked?"start":"stop";
+      cb.disabled=true;
+      fetch("/admin/services/"+encodeURIComponent(cb.dataset.id)+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
     }));
   }
-  function loadAdminHost() {
-    fetch("/status").then(r => r.json()).then(s => {
-      $("admHost").textContent = s.address + ":" + s.port;
-      $("admFp").textContent = s.fingerprintSha256;
-    }).catch(() => {});
-  }
-  function checkAdmin() {
-    fetch("/admin/services").then(r => { if (!r.ok) throw 0; return r.json(); })
-      .then(list => { tabAdmin.style.display = ""; renderServices(list); loadAdminHost(); })
-      .catch(() => { tabAdmin.style.display = "none"; });
+  function checkAdmin(){
+    fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
+      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); })
+      .catch(()=>{ $("rail").hidden=true; $("grid").classList.add("no-rail"); });
   }
 
   // ---- tabs ----
-  document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", "false"));
-    tab.setAttribute("aria-selected", "true");
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    $("view-" + tab.dataset.view).classList.add("active");
+  document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    $("view-"+tab.dataset.view).classList.add("active");
   }));
 
+  // ---- copy fingerprint ----
+  $("copyfp").addEventListener("click",()=>{ if(navigator.clipboard) navigator.clipboard.writeText($("admFp").textContent); });
+
+  // ---- name ----
+  nameInput.addEventListener("change",()=>{ name=nameInput.value.trim()||name; nameInput.value=name; localStorage.setItem("servd-name",name); sayHello(); });
+  nameInput.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nameInput.blur(); } });
+
+  // ---- composer ----
+  $("composer").addEventListener("submit",e=>{
+    e.preventDefault(); const t=textInput.value.trim();
+    if(!t||!ws||ws.readyState!==1) return;
+    ws.send(JSON.stringify({type:"chat",text:t})); textInput.value="";
+  });
+
   // ---- websocket ----
-  function connect() {
-    ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
-    ws.onopen = () => { setConn(true, "connected"); sayHello(); };
-    ws.onclose = () => { setConn(false, "reconnecting..."); scheduleRetry(); };
-    ws.onerror = () => ws.close();
-    ws.onmessage = ev => {
-      let m; try { m = JSON.parse(ev.data); } catch { return; }
-      switch (m.type) {
-        case "welcome": selfId = m.selfId; break;
+  function connect(){
+    ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
+    ws.onopen=()=>{ setConn(true); sayHello(); loadStatus(); };
+    ws.onclose=()=>{ setConn(false); clearTimeout(retry); retry=setTimeout(connect,1500); };
+    ws.onerror=()=>ws.close();
+    ws.onmessage=ev=>{ let m; try{ m=JSON.parse(ev.data); }catch{ return; }
+      switch(m.type){
+        case "welcome": selfId=m.selfId; break;
         case "roster": renderRoster(m.peers); break;
-        case "chat": addChat(m.fromId, m.fromName, m.text, m.ts); break;
-        case "presence": addSys(esc(m.peer.name) + (m.event === "join" ? " joined the hub" : " left the hub")); break;
-        case "file": addFile(m.file, true); break;
+        case "chat": addChat(m.fromId,m.fromName,m.text,m.ts); break;
+        case "presence": addSys(esc(m.peer.name)+(m.event==="join"?" joined the hub":" left the hub")); loadStatus(); break;
+        case "file": addFile(m.file,true); break;
       }
     };
   }
-  function scheduleRetry() { clearTimeout(retry); retry = setTimeout(connect, 1500); }
-  function sayHello() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "hello", name })); }
-
-  nameInput.addEventListener("change", () => { name = nameInput.value.trim() || name; nameInput.value = name; localStorage.setItem("servd-name", name); sayHello(); });
-  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nameInput.blur(); } });
-  $("composer").addEventListener("submit", e => {
-    e.preventDefault();
-    const text = textInput.value.trim();
-    if (!text || !ws || ws.readyState !== 1) return;
-    ws.send(JSON.stringify({ type: "chat", text })); textInput.value = "";
-  });
+  function sayHello(){ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:"hello",name})); }
 
   loadFiles();
   checkAdmin();
   connect();
+  setInterval(loadStatus, 15000); // keep uptime / connected count fresh
 </script>
 </body>
 </html>

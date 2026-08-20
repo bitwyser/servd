@@ -67,6 +67,9 @@ class ChatHub(private val serverName: String) {
         broadcastRoster()
     }
 
+    /** Number of live dashboard connections. */
+    fun connectionCount(): Int = conns.size
+
     /** Broadcast that a file was shared, so every connected dashboard updates live. */
     suspend fun announceFile(meta: FileMeta) {
         broadcast(FileShared(meta))

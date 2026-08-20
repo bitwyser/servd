@@ -62,11 +62,16 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val tls: TlsKeyStore,
     /** Directory where shared files are stored. */
     filesDir: File,
-    /** Optional platform services (e.g. SSH on desktop) added alongside the always-on HTTP one. */
+    /** Platform services (e.g. SSH/FTP on desktop) added alongside the always-on HTTP one. */
     extraServices: List<Service> = emptyList(),
+    /** Machine host name, shown in the host card. */
+    private val hostName: String = "servd",
+    /** Bound network interface name (e.g. "wlan0"), shown in the host card. */
+    private val interfaceName: String? = null,
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
+    private val startedAt = System.currentTimeMillis()
     private val chatHub = ChatHub(serverName = advertisedHost)
     private val fileStore = FileStore(filesDir)
     private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
@@ -120,12 +125,17 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
             }
             // Machine-readable status - includes the cert fingerprint for verification.
             get("/status") {
+                val ifaceJson = interfaceName?.let { "\"$it\"" } ?: "null"
                 val json = buildString {
                     append('{')
                     append("\"name\":\"").append(Servd.NAME).append("\",")
                     append("\"version\":\"").append(Servd.VERSION).append("\",")
-                    append("\"address\":\"").append(bindHost).append("\",")
+                    append("\"address\":\"").append(advertisedHost).append("\",")
                     append("\"port\":").append(port).append(',')
+                    append("\"hostName\":\"").append(hostName).append("\",")
+                    append("\"interfaceName\":").append(ifaceJson).append(',')
+                    append("\"uptimeMs\":").append(System.currentTimeMillis() - startedAt).append(',')
+                    append("\"connected\":").append(chatHub.connectionCount()).append(',')
                     append("\"tls\":\"self-signed\",")
                     append("\"fingerprintSha256\":\"").append(tls.fingerprintSha256).append('"')
                     append('}')
