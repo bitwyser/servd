@@ -133,6 +133,7 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                 val json = buildString {
                     append('{')
                     append("\"name\":\"").append(Servd.NAME).append("\",")
+                    append("\"version\":\"").append(Servd.VERSION).append("\",")
                     append("\"address\":\"").append(advertisedHost).append("\",")
                     append("\"port\":").append(port).append(',')
                     append("\"hostName\":\"").append(hostName).append("\",")

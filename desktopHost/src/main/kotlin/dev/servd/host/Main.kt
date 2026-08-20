@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
     val bindHost = opts.host ?: "0.0.0.0"
     val dataDir = File(opts.dir ?: (System.getProperty("user.home") + File.separator + ".servd"))
 
-    println("${Servd.NAME} - ${Servd.TAGLINE}")
+    println("${Servd.NAME} v${Servd.VERSION} - ${Servd.TAGLINE}")
     if (opts.host == null && lan == null) {
         println("(no LAN address found - reachable at 127.0.0.1 only; connect Wi-Fi/hotspot for other devices)")
     }
@@ -120,7 +120,7 @@ private fun runDiscover() {
         println("No servd hubs found. Make sure a hub is running on this network.")
     } else {
         println("Found ${hubs.size} hub(s):")
-        hubs.forEach { println("  ${it.url}   ${it.name}") }
+        hubs.forEach { println("  ${it.url}   ${it.name}   v${it.version ?: "?"}") }
     }
 }
 
