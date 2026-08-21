@@ -7,16 +7,16 @@
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Android-informational)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white)
 
-**A portable local-network server tool.** Run it on a laptop or an Android phone and that device
-becomes a small hub every other device on the same Wi-Fi or hotspot can reach: an encrypted
-dashboard with real-time chat, a live roster of who's connected, drag-n-drop file sharing, and
-built-in SSH/SFTP and FTPS servers.
+**A portable local-network server tool.** Run it on a computer or an Android phone and that device
+becomes a hub other devices on the same Wi-Fi or hotspot reach straight from a browser - no client
+to install. It serves an encrypted dashboard with real-time chat, a live roster of who's connected,
+and drag-n-drop file sharing, plus built-in SSH/SFTP and FTPS servers you toggle on from the admin
+panel.
 
-Everything is served over HTTPS/WSS with a self-signed certificate. A LAN has no public domain and
-no certificate authority, so you verify the connection by its **SHA-256 fingerprint** instead.
-
-> **Version 1.0.0** · Windows, Linux, macOS (desktop) and Android (min SDK 24) · MIT-licensed ·
-> runs fully offline.
+Every transport is encrypted - HTTPS/WSS, SSH, FTPS. A LAN has no certificate authority, so the
+self-signed certificate is verified by its **SHA-256 fingerprint** rather than a CA. The same stack
+hosts on desktop (Windows, Linux, macOS) and Android - a phone is a full hub, not a lesser client -
+and the UI is the served dashboard on every platform.
 
 ---
 
