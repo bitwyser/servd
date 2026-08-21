@@ -11,7 +11,6 @@ no certificate authority, so you verify the connection by its **SHA-256 fingerpr
 - **Version:** 0.1.0
 - **Platforms:** Windows, Linux, macOS (desktop) and Android (min SDK 24)
 - **License:** MIT
-- **Status:** all planned phases complete (see [Project status](#project-status))
 
 ---
 
@@ -28,7 +27,6 @@ no certificate authority, so you verify the connection by its **SHA-256 fingerpr
 - [Architecture](#architecture)
 - [Building & testing](#building--testing)
 - [Troubleshooting](#troubleshooting)
-- [Project status](#project-status)
 - [Tech stack & versions](#tech-stack--versions)
 - [License](#license)
 
@@ -389,30 +387,9 @@ CLI (or the Android control screen) shows, then proceed.
 **No LAN address found.** Connect to Wi-Fi or start a hotspot, then restart servd. Without one it
 binds to `127.0.0.1`, reachable only from the same machine.
 
-**`Ctrl+C` prints a wall of `RejectedExecutionException`.** Fixed - if you still see it, rebuild.
-It was harmless shutdown noise (in-flight HTTP/2 frames racing the event loop) and the server always
-stopped cleanly.
-
----
-
-## Project status
-
-All planned phases are complete. servd was built in self-contained increments, each independently
-runnable and committed on its own.
-
-| Phase | | Status |
-|---|---|---|
-| 0 | Project skeleton + LAN IP detection | done |
-| 0.5 | Hello world on desktop + Android (shared core) | done |
-| 1 | HTTPS server, self-signed TLS, dashboard shell, CLI | done |
-| 2 | Real-time chat + connected-device roster | done |
-| 3 | Drag-n-drop file sharing | done |
-| 4 | mDNS auto-discovery of hubs | done |
-| 5 | Service manager + host-only admin panel | done |
-| 6 | SSH / SFTP server | done |
-| 7 | FTPS server | done |
-| 8 | Android host app (full stack: foreground service, control screen, NsdManager) | done |
-| 9 | Packaging (jpackage app image + native installer, signed release APK) | done |
+**`Ctrl+C` prints a wall of `RejectedExecutionException`.** Harmless shutdown noise from in-flight
+HTTP/2 frames racing the event loop; the server stops cleanly regardless. servd silences it, so if
+you see it you're on an old build - rebuild.
 
 ---
 
