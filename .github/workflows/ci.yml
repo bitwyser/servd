@@ -1,0 +1,25 @@
+name: ci
+
+# Build health on every push/PR to main: run the unit tests, build the desktop distribution, and
+# assemble the Android debug APK. This is what the build-status badge in the README reflects.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Build and test
+        run: ./gradlew :core:desktopTest :desktopHost:installDist :androidApp:assembleDebug --console=plain

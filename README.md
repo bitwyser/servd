@@ -1,5 +1,12 @@
 # servd
 
+[![CI](https://github.com/patkarmandar/servd/actions/workflows/ci.yml/badge.svg)](https://github.com/patkarmandar/servd/actions/workflows/ci.yml)
+[![Release](https://github.com/patkarmandar/servd/actions/workflows/release.yml/badge.svg)](https://github.com/patkarmandar/servd/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/patkarmandar/servd?sort=semver&label=release)](https://github.com/patkarmandar/servd/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Android-informational)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white)
+
 **A portable local-network server tool.** Run it on a laptop or an Android phone and that device
 becomes a small hub every other device on the same Wi-Fi or hotspot can reach: an encrypted
 dashboard with real-time chat, a live roster of who's connected, drag-n-drop file sharing, and
@@ -8,9 +15,8 @@ built-in SSH/SFTP and FTPS servers.
 Everything is served over HTTPS/WSS with a self-signed certificate. A LAN has no public domain and
 no certificate authority, so you verify the connection by its **SHA-256 fingerprint** instead.
 
-- **Version:** 1.0.0
-- **Platforms:** Windows, Linux, macOS (desktop) and Android (min SDK 24)
-- **License:** MIT
+> **Version 1.0.0** · Windows, Linux, macOS (desktop) and Android (min SDK 24) · MIT-licensed ·
+> runs fully offline.
 
 ---
 
