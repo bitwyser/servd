@@ -267,7 +267,8 @@ dist/
 | `-Android` | `--android` | Android only |
 | `-Clean` | `--clean` | wipe `dist/` first |
 
-The Gradle tasks these wrap are below, if you'd rather run them directly.
+`package.sh` also takes `-h` / `--help` to print its usage. The Gradle tasks these scripts wrap are
+below, if you'd rather run them directly.
 
 ### Desktop app image & installer
 
