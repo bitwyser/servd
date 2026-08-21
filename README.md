@@ -237,48 +237,70 @@ servd is built for a **trusted LAN**, and its boundaries are deliberate:
 Build distributable bundles - a self-contained desktop app and the Android APKs - into a `dist/`
 folder.
 
-### One-shot: `package.ps1`
+### One-shot: `package.ps1` / `package.sh`
 
 ```bash
+# Windows
 .\package.ps1
+
+# Linux / macOS
+./package.sh
 ```
 
-Builds the desktop **app image** (zipped) and the Android **debug APK**, plus the signed **release
-APK** if release signing is set up (below), all in `dist/`:
+Builds the desktop **app image** (bundled JRE) and the Android **debug APK**, plus the signed
+**release APK** if release signing is set up (below), all in `dist/`:
 
 ```
 dist/
-├─ servd-0.1.0-windows-app-image.zip   self-contained desktop app (bundled JRE)
-├─ servd-0.1.0-debug.apk               Android debug build
-└─ servd-0.1.0-release.apk             Android release build (only if signed)
+├─ servd-0.1.0-windows-app-image.zip           self-contained desktop app (Windows)
+├─ servd-0.1.0-linux-x86_64-app-image.tar.gz    self-contained desktop app (Linux/macOS)
+├─ servd-0.1.0-debug.apk                        Android debug build
+└─ servd-0.1.0-release.apk                      Android release build (only if signed)
 ```
 
-| Flag | Effect |
-|---|---|
-| _(none)_ | desktop app image + Android APK(s) |
-| `-Installer` | also build the OS-native installer (`.msi`/`.dmg`/`.deb`) |
-| `-Desktop` | desktop only |
-| `-Android` | Android only |
-| `-Clean` | wipe `dist/` first |
+| `package.ps1` flag | `package.sh` flag | Effect |
+|---|---|---|
+| _(none)_ | _(none)_ | desktop app image + Android APK(s) |
+| `-Installer` | `--installer` | also build the OS-native installer (`.msi`/`.dmg`/`.deb`) |
+| - | `--appimage` | also build a single-file `*.AppImage` (Linux; needs `appimagetool`) |
+| `-Desktop` | `--desktop` | desktop only |
+| `-Android` | `--android` | Android only |
+| `-Clean` | `--clean` | wipe `dist/` first |
 
-The Gradle tasks it wraps are below, if you'd rather run them directly.
+The Gradle tasks these wrap are below, if you'd rather run them directly.
 
 ### Desktop app image & installer
 
 servd bundles its own JRE via **jpackage**, so an end user installs nothing else.
 
 ```bash
-.\run.ps1 :desktopHost:jpackageImage      # self-contained folder
-.\run.ps1 :desktopHost:jpackageInstaller  # native installer for the current OS
+# Windows                                    # Linux / macOS
+.\run.ps1 :desktopHost:jpackageImage         ./run.sh :desktopHost:jpackageImage      # self-contained folder
+.\run.ps1 :desktopHost:jpackageInstaller     ./run.sh :desktopHost:jpackageInstaller  # native installer
 ```
 
 `jpackageImage` writes a self-contained folder to `desktopHost/build/jpackage/servd/` (~166 MB with
-the bundled runtime). Run it directly: on Windows `servd\servd.exe`, on macOS/Linux
-`servd/bin/servd`. It opens a console window showing the hub URL and cert fingerprint; **press
-`Ctrl+C` or close that window to stop the hub.** `jpackageInstaller` builds `.msi` on Windows
-(needs the
+the bundled runtime). The launcher inside is the **click-to-run executable**, the equivalent of a
+Windows `.exe`:
+
+- **Windows:** `servd\servd.exe`
+- **Linux / macOS:** `servd/bin/servd`
+
+It opens a console showing the hub URL and cert fingerprint; **press `Ctrl+C` or close it to stop
+the hub.** `jpackageInstaller` builds `.msi` on Windows (needs the
 [WiX Toolset](https://wixtoolset.org/) on `PATH`), `.dmg` on macOS, `.deb` on Linux. **jpackage is
-per-OS - build each installer on its own platform.**
+per-OS - build each artifact on its own platform.**
+
+**Single-file Linux executable (AppImage).** For one portable file you `chmod +x` and double-click
+(the closest match to a Windows `.exe`), build an AppImage:
+
+```bash
+./package.sh --appimage
+```
+
+It wraps the app image into `dist/servd-0.1.0-<arch>.AppImage`, already marked executable. This
+needs [`appimagetool`](https://appimage.github.io/appimagetool/) on `PATH`; without it the step is
+skipped with a note.
 
 ### Android signed release APK
 
@@ -327,7 +349,7 @@ servd/
 ├─ androidApp/   Android host - foreground service + native control screen
 ├─ run.ps1 / run.bat   run servd on Windows (temp-dir workaround; run.ps1 = clean Ctrl+C)
 ├─ run.sh              run servd on Linux / macOS
-├─ package.ps1         build distributable bundles into dist/
+├─ package.ps1 / package.sh   build distributable bundles into dist/ (Windows / Linux-macOS)
 └─ gradlew*            Gradle wrapper (no separate Gradle install needed)
 ```
 
