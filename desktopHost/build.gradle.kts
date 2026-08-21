@@ -37,7 +37,7 @@ application {
 // .dmg/.pkg on macOS, .deb/.rpm on Linux).
 // ---------------------------------------------------------------------------
 
-val appVersion = "0.1.0"
+val appVersion = providers.gradleProperty("servdVersion").getOrElse("1.0.0")
 
 // jpackage ships inside the JDK; resolve it from the JDK running this build.
 fun jpackageExecutable(): File {

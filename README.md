@@ -8,7 +8,7 @@ built-in SSH/SFTP and FTPS servers.
 Everything is served over HTTPS/WSS with a self-signed certificate. A LAN has no public domain and
 no certificate authority, so you verify the connection by its **SHA-256 fingerprint** instead.
 
-- **Version:** 0.1.0
+- **Version:** 1.0.0
 - **Platforms:** Windows, Linux, macOS (desktop) and Android (min SDK 24)
 - **License:** MIT
 
@@ -24,6 +24,7 @@ no certificate authority, so you verify the connection by its **SHA-256 fingerpr
 - [Usage & configuration](#usage--configuration)
 - [Security model](#security-model)
 - [Packaging](#packaging)
+- [Releases](#releases)
 - [Architecture](#architecture)
 - [Building & testing](#building--testing)
 - [Troubleshooting](#troubleshooting)
@@ -106,7 +107,7 @@ From the repo root:
 opens the dashboard in your browser. You'll see:
 
 ```
-servd v0.1.0 - local-network server tool
+servd v1.0.0 - local-network server tool
 
 admin   : https://127.0.0.1:8443   (this machine only)
 serving : https://10.205.210.12:8443   (share with other devices)
@@ -252,10 +253,10 @@ Builds the desktop **app image** (bundled JRE) and the Android **debug APK**, pl
 
 ```
 dist/
-├─ servd-0.1.0-windows-app-image.zip           self-contained desktop app (Windows)
-├─ servd-0.1.0-linux-x86_64-app-image.tar.gz    self-contained desktop app (Linux/macOS)
-├─ servd-0.1.0-debug.apk                        Android debug build
-└─ servd-0.1.0-release.apk                      Android release build (only if signed)
+├─ servd-1.0.0-windows-app-image.zip           self-contained desktop app (Windows)
+├─ servd-1.0.0-linux-x86_64-app-image.tar.gz    self-contained desktop app (Linux/macOS)
+├─ servd-1.0.0-debug.apk                        Android debug build
+└─ servd-1.0.0-release.apk                      Android release build (only if signed)
 ```
 
 | `package.ps1` flag | `package.sh` flag | Effect |
@@ -299,7 +300,7 @@ per-OS - build each artifact on its own platform.**
 ./package.sh --appimage
 ```
 
-It wraps the app image into `dist/servd-0.1.0-<arch>.AppImage`, already marked executable. This
+It wraps the app image into `dist/servd-1.0.0-<arch>.AppImage`, already marked executable. This
 needs [`appimagetool`](https://appimage.github.io/appimagetool/) on `PATH`; without it the step is
 skipped with a note.
 
@@ -331,6 +332,56 @@ Then build:
 The signed APK lands at `androidApp/build/outputs/apk/release/androidApp-release.apk`. Without a
 `keystore.properties`, `assembleRelease` still builds but leaves the APK unsigned. The debug build
 (`assembleDebug`) needs no keystore.
+
+---
+
+## Releases
+
+Tagged releases are built and published automatically by GitHub Actions
+([`.github/workflows/release.yml`](.github/workflows/release.yml)). Because jpackage is per-OS,
+each artifact is built on its native runner, then all are attached to a GitHub Release for the tag:
+
+- **Windows** - app-image `.zip` (contains `servd.exe` + bundled JRE)
+- **Linux** - single-file `.AppImage`
+- **Android** - signed release `.apk`
+
+### Cut a release
+
+1. Bump the version in one place - `servdVersion` in [`gradle.properties`](gradle.properties) - and
+   the matching `Servd.VERSION` constant in `core/.../Servd.kt` (CI fails if the two disagree).
+2. Commit, then tag and push. The tag must be `v<servdVersion>`:
+
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+CI verifies the tag matches the version, builds all three artifacts, and publishes the release with
+auto-generated notes. (You can also build locally any time with
+[`package.ps1` / `package.sh`](#packaging).)
+
+### Android signing secrets
+
+The signed release APK needs your keystore, stored as encrypted repository secrets
+(**Settings -> Secrets and variables -> Actions**). Generate a keystore once and keep it safe -
+reuse it for every release so updates install over the previous version:
+
+```bash
+keytool -genkeypair -v -keystore servd-release.jks -alias servd \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Then add these four secrets:
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | the keystore, base64-encoded |
+| `ANDROID_STORE_PASSWORD` | keystore (store) password |
+| `ANDROID_KEY_ALIAS` | key alias (e.g. `servd`) |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+Base64-encode the keystore with `base64 -w0 servd-release.jks` (Linux/macOS/Git Bash) or, in
+PowerShell, `[Convert]::ToBase64String([IO.File]::ReadAllBytes("servd-release.jks"))`.
 
 ---
 

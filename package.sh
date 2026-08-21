@@ -18,7 +18,9 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GRADLEW="$DIR/gradlew"
-version="0.1.0"   # mirrors desktopHost/androidApp build files
+# Version from the single source of truth (gradle.properties: servdVersion).
+version="$(grep -E '^[[:space:]]*servdVersion[[:space:]]*=' "$DIR/gradle.properties" | head -1 | cut -d= -f2 | tr -d '[:space:]')"
+[ -n "$version" ] || version="1.0.0"
 
 # ---- flags ----
 desktop=0; android=0; installer=0; appimage=0; clean=0

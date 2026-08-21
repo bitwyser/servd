@@ -14,6 +14,15 @@ val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
+// Version comes from the single source of truth (gradle.properties: servdVersion). versionCode is
+// derived from the semver so it always increases: 1.2.3 -> 10203.
+val servdVersion = providers.gradleProperty("servdVersion").getOrElse("1.0.0")
+val servdVersionCode = servdVersion.split(".").let { p ->
+    (p.getOrNull(0)?.toIntOrNull() ?: 0) * 10000 +
+        (p.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
+        (p.getOrNull(2)?.toIntOrNull() ?: 0)
+}
+
 android {
     namespace = "dev.servd.android"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -22,8 +31,8 @@ android {
         applicationId = "dev.servd.android"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = servdVersionCode
+        versionName = servdVersion
         multiDexEnabled = true // Netty/Ktor push past the 64k method limit
     }
 

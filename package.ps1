@@ -25,8 +25,9 @@ param(
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 
-# Keep servd's version in one place; mirrors desktopHost/androidApp build files.
-$version = "0.1.0"
+# Version from the single source of truth (gradle.properties: servdVersion).
+$versionLine = Get-Content (Join-Path $root "gradle.properties") | Where-Object { $_ -match '^\s*servdVersion\s*=' } | Select-Object -First 1
+$version = if ($versionLine) { ($versionLine -replace '^\s*servdVersion\s*=\s*', '').Trim() } else { "1.0.0" }
 
 # TMP/TEMP workaround (see run.ps1).
 $sockDir = Join-Path $root ".sock-tmp"
