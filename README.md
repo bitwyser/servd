@@ -260,7 +260,9 @@ servd bundles its own JRE via **jpackage**, so an end user installs nothing else
 
 `jpackageImage` writes a self-contained folder to `desktopHost/build/jpackage/servd/` (~166 MB with
 the bundled runtime). Run it directly: on Windows `servd\servd.exe`, on macOS/Linux
-`servd/bin/servd`. `jpackageInstaller` builds `.msi` on Windows (needs the
+`servd/bin/servd`. It opens a console window showing the hub URL and cert fingerprint; **press
+`Ctrl+C` or close that window to stop the hub.** `jpackageInstaller` builds `.msi` on Windows
+(needs the
 [WiX Toolset](https://wixtoolset.org/) on `PATH`), `.dmg` on macOS, `.deb` on Linux. **jpackage is
 per-OS - build each installer on its own platform.**
 

@@ -62,7 +62,7 @@ fun jpackageCommand(type: String): List<String> {
     val libDir = File(installDir, "lib")
     val mainJar = tasks.jar.get().archiveFile.get().asFile.name
     val dest = layout.buildDirectory.dir("jpackage").get().asFile
-    return listOf(
+    val cmd = mutableListOf(
         jpackageExecutable().absolutePath,
         "--type", type,
         "--name", "servd",
@@ -74,6 +74,11 @@ fun jpackageCommand(type: String): List<String> {
         "--vendor", "servd",
         "--description", "servd - local-network server tool",
     )
+    // servd is a console app: it prints the URL/fingerprint and waits for Ctrl+C. Without this,
+    // jpackage's Windows launcher is a windowless GUI app - the user would see nothing and have
+    // no way to stop it but Task Manager. --win-console gives it a console to read and Ctrl+C.
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows) cmd += "--win-console"
+    return cmd
 }
 
 val jpackageImage by tasks.registering(Exec::class) {
