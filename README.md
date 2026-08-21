@@ -95,11 +95,15 @@ nothing at all), plus a Wi-Fi or hotspot network - which does **not** need an in
 From the repo root:
 
 ```bash
+# Windows
 .\run.ps1
+
+# Linux / macOS
+./run.sh
 ```
 
-(`run.bat` works too.) This builds servd, binds it to your detected LAN address, and opens the
-dashboard in your browser. You'll see:
+(`run.bat` also works on Windows.) This builds servd, binds it to your detected LAN address, and
+opens the dashboard in your browser. You'll see:
 
 ```
 servd v0.1.0 - local-network server tool
@@ -129,9 +133,13 @@ batch job?" prompt after the server has already stopped.
    appears in the **Devices** roster; the **Files** tab does drag-n-drop to everyone. Or just
    **scan the QR** in the Devices panel to open the hub on a phone.
 
-> **Why `run.ps1` / `run.bat` instead of `gradlew` directly?** They apply a temp-dir workaround
-> this environment needs and launch the server as a direct JVM process for a clean `Ctrl+C`. See
-> [Troubleshooting](#troubleshooting).
+> **On Linux/macOS, use `./run.sh` wherever this README shows `.\run.ps1`** - both take the same
+> servd flags and Gradle tasks.
+>
+> **Why a runner instead of `gradlew` directly?** It launches the server as a direct JVM process
+> for a clean `Ctrl+C`, and on Windows it also applies a temp-dir workaround (not needed on
+> Linux/macOS). See [Troubleshooting](#troubleshooting). You can always call `./gradlew` yourself
+> instead.
 
 ---
 
@@ -317,7 +325,8 @@ servd/
 │   └─ .../resources/webui   the served dashboard (single HTML/CSS/JS file)
 ├─ desktopHost/  JVM app - the CLI that starts the server (Netty engine)
 ├─ androidApp/   Android host - foreground service + native control screen
-├─ run.ps1 / run.bat   run servd (temp-dir workaround; run.ps1 = clean Ctrl+C)
+├─ run.ps1 / run.bat   run servd on Windows (temp-dir workaround; run.ps1 = clean Ctrl+C)
+├─ run.sh              run servd on Linux / macOS
 ├─ package.ps1         build distributable bundles into dist/
 └─ gradlew*            Gradle wrapper (no separate Gradle install needed)
 ```
