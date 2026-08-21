@@ -42,7 +42,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - name: Build Windows app-image zip
+      - name: Build Windows zip
         shell: pwsh
         run: .\package.ps1 -Desktop
       - uses: actions/upload-artifact@v4

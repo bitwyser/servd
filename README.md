@@ -341,7 +341,7 @@ Tagged releases are built and published automatically by GitHub Actions
 ([`.github/workflows/release.yml`](.github/workflows/release.yml)). Because jpackage is per-OS,
 each artifact is built on its native runner, then all are attached to a GitHub Release for the tag:
 
-- **Windows** - app-image `.zip` (contains `servd.exe` + bundled JRE)
+- **Windows** - `.zip` (contains `servd.exe` + bundled JRE)
 - **Linux** - single-file `.AppImage`
 - **Android** - signed release `.apk`
 
