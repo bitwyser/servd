@@ -47,6 +47,11 @@ It is a **trusted-LAN tool**: there is no account or PIN gate on the dashboard, 
 are reachable only from the host device itself, and the SSH/FTP servers use real credentials. See
 [Security model](#security-model).
 
+**Fully offline.** servd needs no internet to run. It talks only to devices on your local network,
+serves a self-contained dashboard (no CDN, webfonts, analytics, or telemetry), and works on an
+isolated Wi-Fi or hotspot with no uplink. The only time internet is used is the **first build**, to
+download dependencies; a packaged build - or one you've already built - runs with none.
+
 ---
 
 ## Features
@@ -65,22 +70,23 @@ are reachable only from the host device itself, and the SSH/FTP servers use real
 - **Self-signed TLS** with a printed, verifiable SHA-256 fingerprint.
 - **Desktop CLI** that starts the hub, prints the fingerprint, and auto-opens the dashboard.
 - **Android host** with a foreground service (survives backgrounding) and a native control screen.
+- **Fully offline** - LAN only, with a self-contained dashboard (no CDN, webfonts, or telemetry).
 
 ---
 
 ## Requirements
 
-**To run/build from source:**
+**To build from source:**
 
 - **JDK 17 or newer** (JDK 21 is fine - the build targets Java 17 bytecode). No separate Gradle
   install is needed; the repo ships a Gradle wrapper.
-- **Internet access on first build** (to download Gradle and dependencies).
+- **Internet access on the first build only**, to download Gradle and dependencies. Nothing after
+  that reaches the internet - servd itself runs fully offline.
+- For the Android app, the **Android SDK**, with `local.properties` pointing at it, e.g.
+  `sdk.dir=C:\\Android`.
 
-**Additionally, for the Android app:**
-
-- The **Android SDK**, with `local.properties` pointing at it, e.g. `sdk.dir=C:\\Android`.
-
-**To run a packaged desktop build:** nothing - the app image bundles its own JRE.
+**To run:** nothing beyond a JVM (a packaged desktop build bundles its own JRE, so it needs
+nothing at all), plus a Wi-Fi or hotspot network - which does **not** need an internet uplink.
 
 ---
 
