@@ -46,10 +46,15 @@ $dist = Join-Path $root "dist"
 if ($Clean -and (Test-Path $dist)) { Remove-Item $dist -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
+# Color scheme (kept minimal and meaningful): Cyan = step, Green = produced artifact,
+# Yellow = skipped/warning, Red = failure.
 function Invoke-Gradle {
     param([string[]]$GradleArgs)
     & $gradlew @GradleArgs "--console=plain"
-    if ($LASTEXITCODE -ne 0) { throw "gradle failed: $($GradleArgs -join ' ')" }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "gradle failed: $($GradleArgs -join ' ')" -ForegroundColor Red
+        throw "gradle failed: $($GradleArgs -join ' ')"
+    }
 }
 
 if ($Desktop) {
@@ -96,5 +101,5 @@ if ($Android) {
 }
 
 Write-Host ""
-Write-Host "Done. Bundles are in: $dist" -ForegroundColor Cyan
+Write-Host "Done. Bundles are in: $dist" -ForegroundColor Green
 Get-ChildItem $dist -File | Select-Object Name, @{n = "SizeMB"; e = { "{0:N1}" -f ($_.Length / 1MB) } } | Format-Table -AutoSize

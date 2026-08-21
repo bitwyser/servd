@@ -22,16 +22,22 @@ $env:TMP = $sockDir
 $env:TEMP = $sockDir
 $gradlew = Join-Path $root "gradlew.bat"
 
+# Minimal, meaningful color: cyan for a status note, red for a failure.
+function Write-Info($m) { Write-Host $m -ForegroundColor Cyan }
+function Write-Err($m) { Write-Host $m -ForegroundColor Red }
+
 # Server run = no args, or the first arg is a servd flag / the discover verb.
 $serverRun = ($args.Count -eq 0) -or ($args[0] -like '--*') -or ($args[0] -eq 'discover')
 
 if ($serverRun) {
+    Write-Info "building servd..."   # the build below is quiet (-q), so say what's happening
     & $gradlew ":desktopHost:installDist" "-q" "--console=plain"
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) { Write-Err "build failed (exit $LASTEXITCODE)"; exit $LASTEXITCODE }
     $jars = (Get-ChildItem (Join-Path $root "desktopHost\build\install\servd\lib\*.jar")).FullName -join ';'
     & java "-cp" $jars "dev.servd.host.MainKt" @args
     exit $LASTEXITCODE
 }
 
 & $gradlew @args
+if ($LASTEXITCODE -ne 0) { Write-Err "gradle failed (exit $LASTEXITCODE)" }
 exit $LASTEXITCODE
