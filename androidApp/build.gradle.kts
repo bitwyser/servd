@@ -1,8 +1,17 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+}
+
+// Release signing (Phase 9): read credentials from an untracked keystore.properties so no secret
+// ever lands in the repo (see README for how to generate one). Without it, assembleRelease still
+// builds, but produces an unsigned APK you must sign yourself.
+val keystorePropsFile = rootProject.file("androidApp/keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
 android {
@@ -18,9 +27,22 @@ android {
         multiDexEnabled = true // Netty/Ktor push past the 64k method limit
     }
 
+    signingConfigs {
+        if (keystoreProps.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Sign the release only if keystore.properties supplied a config.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

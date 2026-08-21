@@ -28,3 +28,73 @@ application {
     applicationName = "servd"
     mainClass.set("dev.servd.host.MainKt")
 }
+
+// ---------------------------------------------------------------------------
+// Packaging (Phase 9): bundle servd with its own JRE via jpackage, so an end
+// user needs nothing else installed. `jpackageImage` builds a self-contained
+// app folder (no external tooling required); `jpackageInstaller` builds a
+// native installer for the current OS (needs WiX on Windows, and produces
+// .dmg/.pkg on macOS, .deb/.rpm on Linux).
+// ---------------------------------------------------------------------------
+
+val appVersion = "0.1.0"
+
+// jpackage ships inside the JDK; resolve it from the JDK running this build.
+fun jpackageExecutable(): File {
+    val javaHome = File(System.getProperty("java.home"))
+    val exe = if (org.gradle.internal.os.OperatingSystem.current().isWindows) "jpackage.exe" else "jpackage"
+    val file = File(javaHome, "bin/$exe")
+    check(file.exists()) {
+        "jpackage not found at $file - run the build with a full JDK (17+), not a JRE."
+    }
+    return file
+}
+
+// Installer type for the current OS. app-image is a plain self-contained folder.
+fun defaultInstallerType(): String = when {
+    org.gradle.internal.os.OperatingSystem.current().isWindows -> "msi"   // needs WiX on PATH
+    org.gradle.internal.os.OperatingSystem.current().isMacOsX -> "dmg"
+    else -> "deb"
+}
+
+fun jpackageCommand(type: String): List<String> {
+    val installDir = layout.buildDirectory.dir("install/servd").get().asFile
+    val libDir = File(installDir, "lib")
+    val mainJar = tasks.jar.get().archiveFile.get().asFile.name
+    val dest = layout.buildDirectory.dir("jpackage").get().asFile
+    return listOf(
+        jpackageExecutable().absolutePath,
+        "--type", type,
+        "--name", "servd",
+        "--app-version", appVersion,
+        "--input", libDir.absolutePath,
+        "--main-jar", mainJar,
+        "--main-class", "dev.servd.host.MainKt",
+        "--dest", dest.absolutePath,
+        "--vendor", "servd",
+        "--description", "servd - local-network server tool",
+    )
+}
+
+val jpackageImage by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Build a self-contained servd app image (bundled JRE) via jpackage."
+    dependsOn(tasks.named("installDist"))
+    doFirst {
+        delete(File(layout.buildDirectory.dir("jpackage").get().asFile, "servd"))
+        commandLine(jpackageCommand("app-image"))
+    }
+    doLast {
+        println("app image: ${layout.buildDirectory.dir("jpackage/servd").get().asFile}")
+    }
+}
+
+val jpackageInstaller by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Build a native servd installer for the current OS via jpackage."
+    dependsOn(tasks.named("installDist"))
+    doFirst { commandLine(jpackageCommand(defaultInstallerType())) }
+    doLast {
+        println("installer written to: ${layout.buildDirectory.dir("jpackage").get().asFile}")
+    }
+}

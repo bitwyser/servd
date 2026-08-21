@@ -8,7 +8,7 @@ built-in SSH/SFTP and FTPS servers.
 Everything is served over **HTTPS/WSS** with a self-signed certificate (there's no public
 domain on a LAN, so you verify the connection by its **fingerprint** instead of a CA).
 
-> **Status:** early development. Phases 0-8 are done. servd runs as a full hub on **desktop**
+> **Status:** early development. Phases 0-9 are done. servd runs as a full hub on **desktop**
 > (Windows / Linux / macOS) **and Android** - a phone hosts the exact same stack (HTTPS
 > dashboard + chat + files, plus SSH/SFTP and FTPS), not a lesser version. See [Roadmap](#roadmap).
 
@@ -216,6 +216,61 @@ stop it).
 
 ---
 
+## Packaging
+
+### Desktop (bundled app, no Java needed on the target)
+
+servd bundles its own JRE via **jpackage**, so an end user installs nothing else.
+
+```bash
+run.ps1 :desktopHost:jpackageImage
+```
+
+This writes a self-contained folder to `desktopHost/build/jpackage/servd/` (the launcher plus a
+bundled runtime, ~166 MB). Run it directly - on Windows, `servd\servd.exe`; on macOS/Linux,
+`servd/bin/servd`. Zip that folder to distribute it.
+
+For a **native installer** instead of a folder:
+
+```bash
+run.ps1 :desktopHost:jpackageInstaller
+```
+
+This builds the installer type for the OS you run it on: `.msi` on Windows (needs the
+[WiX Toolset](https://wixtoolset.org/) on `PATH`), `.dmg` on macOS, `.deb` on Linux. jpackage is
+per-OS - build each installer on its own platform. Output lands in `desktopHost/build/jpackage/`.
+
+### Android (signed release APK)
+
+Release signing reads from an **untracked** `androidApp/keystore.properties`, so no secret is
+committed. Generate a keystore once:
+
+```bash
+keytool -genkeypair -v -keystore androidApp/servd-release.jks -alias servd \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Create `androidApp/keystore.properties` (git-ignored) pointing at it:
+
+```properties
+storeFile=androidApp/servd-release.jks
+storePassword=your-store-password
+keyAlias=servd
+keyPassword=your-key-password
+```
+
+Then build the signed release:
+
+```bash
+run.ps1 :androidApp:assembleRelease
+```
+
+The signed APK lands at `androidApp/build/outputs/apk/release/androidApp-release.apk`. Without a
+`keystore.properties`, `assembleRelease` still builds but leaves the APK unsigned (you'd sign it
+yourself). The debug build (`assembleDebug`) needs no keystore.
+
+---
+
 ## Project layout
 
 ```
@@ -277,7 +332,7 @@ Built in self-contained phases; each is independently runnable.
 | 6 | Optional SSH server | ✅ |
 | 7 | Optional FTPS server | ✅ |
 | 8 | Android host app (full stack: foreground service, control screen, NsdManager) | ✅ |
-| 9 | Packaging (installers + APK) | ▫️ next |
+| 9 | Packaging (jpackage app image + native installer, signed release APK) | ✅ |
 
 See [`docs/phased-implementation.md`](docs/phased-implementation.md) for details.
 
