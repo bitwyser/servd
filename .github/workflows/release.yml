@@ -48,7 +48,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: dist/*-app-image.zip
+          path: dist/servd-*-windows.zip
           if-no-files-found: error
 
   linux:

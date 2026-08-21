@@ -253,10 +253,10 @@ Builds the desktop **app image** (bundled JRE) and the Android **debug APK**, pl
 
 ```
 dist/
-├─ servd-1.0.0-windows-app-image.zip           self-contained desktop app (Windows)
-├─ servd-1.0.0-linux-x86_64-app-image.tar.gz    self-contained desktop app (Linux/macOS)
-├─ servd-1.0.0-debug.apk                        Android debug build
-└─ servd-1.0.0-release.apk                      Android release build (only if signed)
+├─ servd-1.0.0-windows.zip           self-contained desktop app (Windows)
+├─ servd-1.0.0-linux-x86_64.tar.gz   self-contained desktop app (Linux/macOS)
+├─ servd-1.0.0-debug.apk             Android debug build
+└─ servd-1.0.0-release.apk           Android release build (only if signed)
 ```
 
 | `package.ps1` flag | `package.sh` flag | Effect |

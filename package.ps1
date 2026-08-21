@@ -64,7 +64,7 @@ if ($Desktop) {
 
     $imageDir = Join-Path $root "desktopHost\build\jpackage\servd"
     if (-not (Test-Path $imageDir)) { throw "app image not found at $imageDir" }
-    $zip = Join-Path $dist "servd-$version-$osLabel-app-image.zip"
+    $zip = Join-Path $dist "servd-$version-$osLabel.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path $imageDir -DestinationPath $zip
     Write-Host "    app image  -> $zip" -ForegroundColor Green

@@ -93,7 +93,7 @@ if [ "$desktop" -eq 1 ]; then
     step "Desktop: building app image (bundled JRE)..."
     run_gradle :desktopHost:jpackageImage
     [ -d "$imageDir" ] || die "app image not found at $imageDir"
-    tarball="$dist/servd-$version-$os-$arch-app-image.tar.gz"
+    tarball="$dist/servd-$version-$os-$arch.tar.gz"
     rm -f "$tarball"
     tar -C "$(dirname "$imageDir")" -czf "$tarball" "$(basename "$imageDir")"
     ok "app image  -> $tarball   (extract, then run servd/bin/servd)"
