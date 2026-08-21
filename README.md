@@ -1,6 +1,6 @@
 # servd
 
-A portable **local-network server tool**. Run it on a laptop (Android host coming) and it turns
+A portable **local-network server tool**. Run it on a laptop **or an Android phone** and it turns
 that device into a small hub other devices on the same Wi-Fi / hotspot can reach - an encrypted
 dashboard with real-time chat, a live roster of who's connected, drag-n-drop file sharing, and
 built-in SSH/SFTP and FTPS servers.
@@ -8,9 +8,9 @@ built-in SSH/SFTP and FTPS servers.
 Everything is served over **HTTPS/WSS** with a self-signed certificate (there's no public
 domain on a LAN, so you verify the connection by its **fingerprint** instead of a CA).
 
-> **Status:** early development. Phases 0-7 are done and usable on **desktop**
-> (Windows / Linux / macOS). The Android app currently only proves the shared core runs
-> (a "hello" screen) - it does **not** host servers yet. See [Roadmap](#roadmap).
+> **Status:** early development. Phases 0-8 are done. servd runs as a full hub on **desktop**
+> (Windows / Linux / macOS) **and Android** - a phone hosts the exact same stack (HTTPS
+> dashboard + chat + files, plus SSH/SFTP and FTPS), not a lesser version. See [Roadmap](#roadmap).
 
 ---
 
@@ -52,11 +52,11 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 | ├ `ktor-server-netty` | | **Netty** engine - serves HTTPS on desktop (Ktor's CIO engine can't) |
 | ├ `ktor-server-websockets` | | WSS transport for chat + presence |
 | └ `ktor-network-tls-certificates` | | Generates the self-signed keystore |
-| **Netty** | via Ktor | Underlying async I/O engine on desktop |
-| **JSSE / JKS** | JDK | TLS + the persisted `keystore.jks`; SHA-256 fingerprint via `java.security` |
+| **Netty** | via Ktor | Underlying async I/O engine - HTTPS on desktop **and Android** |
+| **JSSE / PKCS12** | JDK | TLS + the persisted keystore (PKCS12 - loads on desktop **and** Android, which has no JKS provider); SHA-256 fingerprint via `java.security` |
 | **`java.net.NetworkInterface`** | JDK | Cross-platform LAN/hotspot address detection |
-| **Apache MINA SSHD** | `2.13.2` | SSH / SFTP server (desktop only) |
-| **Apache FtpServer** | `1.2.0` | FTPS server (desktop only) |
+| **Apache MINA SSHD** | `2.13.2` | SSH / SFTP server (desktop **and Android**) |
+| **Apache FtpServer** | `1.2.0` | FTPS server (desktop **and Android**) |
 | **JmDNS** | `3.5.9` | mDNS/DNS-SD advertisement + discovery (desktop; Android uses `NsdManager`) |
 | **ZXing** | `3.5.3` | QR-code generation (as SVG) for scan-to-join |
 
@@ -73,12 +73,14 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 | **WebSocket API + Fetch API** | browser | Live chat/roster and `/status` |
 | **System font stacks** | - | Monospace (machine data) + sans (chat); no webfont downloads |
 
-### Android
+### Android (full host)
 | | | |
 |---|---|---|
-| **Android Gradle Plugin** | `8.7.3` | Android build |
+| **Android Gradle Plugin** | `8.7.3` | Android build; `multiDexEnabled` for Netty |
 | **SDK levels** | compile `35` · min `24` · target `35` | |
-| **Android framework** | - | Plain `Activity` + `TextView` (no Compose / AppCompat yet) |
+| **Foreground `Service`** | framework | `dataSync` service keeps the hub alive when backgrounded |
+| **`NsdManager`** | framework | mDNS/DNS-SD advertisement of `_servd._tcp` on Android |
+| **Android framework** | - | Native control screen: plain `Activity` + views (no Compose); the real UI is the served dashboard |
 
 ### Logging
 | | | |
@@ -94,8 +96,7 @@ Everything below is **in use today** unless marked _planned_. Versions are pinne
 | **curl** | - | HTTPS/`/status` smoke checks |
 
 ### Protocols
-- **In use:** HTTPS, WSS, TLS (self-signed), SSH/SFTP, FTPS, mDNS/DNS-SD
-- **Planned:** the same set, hosted from Android
+- **In use (desktop and Android):** HTTPS, WSS, TLS (self-signed), SSH/SFTP, FTPS, mDNS/DNS-SD
 
 ### Not used (deliberately)
 Node.js / Electron (chose a shared Kotlin/JVM core instead), Compose Multiplatform (the UI is
@@ -184,11 +185,12 @@ Gradle tasks pass through too, e.g. tests: `run.ps1 :core:desktopTest`.
 
 ---
 
-## Android app (preview)
+## Android app
 
-The Android module currently just shows a "hello" screen proving the shared core runs on
-Android (it detects the phone's LAN address). It does **not** run the servers yet - that's
-Phase 8.
+The Android app is a **full hub**, hosting the same stack as desktop - HTTPS dashboard + chat +
+files, plus SSH/SFTP and FTPS. It's a thin native shell around the shared core: a foreground
+service keeps the servers alive when the app is backgrounded, and a small control screen lets you
+start/stop the hub and shows how to reach it.
 
 Build the debug APK:
 
@@ -199,6 +201,19 @@ run.ps1 :androidApp:assembleDebug
 The APK lands in `androidApp/build/outputs/apk/debug/`. Install it with
 `adb install -r <that-apk>`.
 
+Then, on the phone:
+
+1. Connect the phone to the **same Wi-Fi** as the other devices (or turn on its **hotspot** and
+   have them join it).
+2. Open **servd** and tap **Start hub**. The control screen shows the **share URL**, a
+   **scan-to-join QR**, the cert **fingerprint** to verify, and the **SSH/FTP credentials**.
+3. On another device, open the share URL (or scan the QR) and accept the certificate warning -
+   same dashboard as desktop. SSH and FTP start off; enable them from the admin dashboard, which
+   the phone reaches on its own `127.0.0.1`.
+
+The hub keeps running in the background with a notification (tap **Stop** there or in the app to
+stop it).
+
 ---
 
 ## Project layout
@@ -207,12 +222,12 @@ The APK lands in `androidApp/build/outputs/apk/debug/`. Install it with
 servd/
 ├─ core/         KMP library - the engine (shared by desktop + Android)
 │   ├─ commonMain      protocol models, PeerRegistry, LAN-address selection, Service model
-│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, QR (shared by both JVM targets)
-│   ├─ desktopMain     desktop-only services: SSH, FTP, mDNS discovery
+│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, QR, SSH + FTP services (both JVM targets)
+│   ├─ desktopMain     desktop-only: JmDNS discovery
 │   ├─ androidMain      Android glue
 │   └─ .../resources/webui   the served dashboard (single HTML/CSS/JS file)
 ├─ desktopHost/  JVM app - the CLI that starts the server (Netty engine)
-├─ androidApp/   Android app shell (hello world for now)
+├─ androidApp/   Android host - foreground service + native control screen (dashboard is the UI)
 ├─ docs/         scaffold plan + phased implementation plan
 ├─ run.ps1 / run.bat   run servd with the TMP/TEMP workaround (run.ps1 = clean Ctrl+C)
 └─ gradlew*      Gradle wrapper (no separate Gradle install needed)
@@ -261,8 +276,8 @@ Built in self-contained phases; each is independently runnable.
 | 5 | Service manager + host-only admin panel | ✅ |
 | 6 | Optional SSH server | ✅ |
 | 7 | Optional FTPS server | ✅ |
-| 8 | Android host app (foreground service, real UI) | ▫️ next |
-| 9 | Packaging (installers + APK) | ▫️ |
+| 8 | Android host app (full stack: foreground service, control screen, NsdManager) | ✅ |
+| 9 | Packaging (installers + APK) | ▫️ next |
 
 See [`docs/phased-implementation.md`](docs/phased-implementation.md) for details.
 
