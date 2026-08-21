@@ -25,6 +25,7 @@ release/
 
 # ---- jpackage / desktop packaging output ----
 /packaging/
+/dist/
 *.dmg
 *.pkg
 *.msi

@@ -218,6 +218,35 @@ stop it).
 
 ## Packaging
 
+Build your own distributable bundles - a self-contained desktop app and the Android APKs - into a
+`dist/` folder.
+
+### One-shot: `package.ps1`
+
+```bash
+.\package.ps1
+```
+
+This builds the desktop **app image** (zipped) and the Android **debug APK**, and - if you've set
+up release signing (below) - the signed **release APK**, dropping them all in `dist/`:
+
+```
+dist/
+├─ servd-0.1.0-windows-app-image.zip   self-contained desktop app (bundled JRE)
+├─ servd-0.1.0-debug.apk               Android debug build
+└─ servd-0.1.0-release.apk             Android release build (only if signed)
+```
+
+| Flag | Effect |
+|---|---|
+| _(none)_ | desktop app image + Android APK(s) |
+| `-Installer` | also build the OS-native installer (`.msi`/`.dmg`/`.deb`) |
+| `-Desktop` | desktop only |
+| `-Android` | Android only |
+| `-Clean` | wipe `dist/` first |
+
+The individual Gradle tasks it wraps are below, if you'd rather run them directly.
+
 ### Desktop (bundled app, no Java needed on the target)
 
 servd bundles its own JRE via **jpackage**, so an end user installs nothing else.
@@ -285,6 +314,7 @@ servd/
 ├─ androidApp/   Android host - foreground service + native control screen (dashboard is the UI)
 ├─ docs/         scaffold plan + phased implementation plan
 ├─ run.ps1 / run.bat   run servd with the TMP/TEMP workaround (run.ps1 = clean Ctrl+C)
+├─ package.ps1         build distributable bundles (desktop app image + APKs) into dist/
 └─ gradlew*      Gradle wrapper (no separate Gradle install needed)
 ```
 
