@@ -377,6 +377,10 @@ keytool -genkeypair -v -keystore servd-release.jks -alias servd \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
+> `keytool` ships with the JDK. If your shell can't find it (common in Git Bash on Windows, where
+> `java` is an Oracle shim without the JDK tools), call it by full path, e.g.
+> `"/c/Program Files/Java/jdk-21/bin/keytool" ...`, or add the JDK's `bin` to your `PATH`.
+
 Then add these four secrets:
 
 | Secret | Value |
