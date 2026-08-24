@@ -14,15 +14,20 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import dev.servd.core.Servd
 
 /**
  * servd's Android control screen - a thin native shell. The real UI is the served web dashboard;
@@ -37,6 +42,7 @@ class MainActivity : Activity() {
     private lateinit var startButton: Button
     private lateinit var stopButton: Button
     private lateinit var openButton: Button
+    private lateinit var copyButton: Button
 
     private val ink = Color.parseColor("#0F1A1F")
     private val muted = Color.parseColor("#5A6B72")
@@ -73,20 +79,14 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#E9EEEF"))
-            setPadding(pad, dp(36), pad, pad)
+            setPadding(pad, pad, pad, pad)
         }
 
         root.addView(TextView(this).apply {
-            text = "servd"
-            setTextColor(ink)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-        })
-        root.addView(TextView(this).apply {
-            text = "your device, as a local-network hub"
+            text = "Your device, as a local-network hub"
             setTextColor(muted)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, dp(2), 0, dp(20))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setPadding(0, 0, 0, dp(10))
         })
 
         statusText = TextView(this).apply {
@@ -96,27 +96,10 @@ class MainActivity : Activity() {
         }
         root.addView(statusText)
 
-        qr = ImageView(this).apply {
-            val size = dp(200)
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                topMargin = dp(16); gravity = Gravity.CENTER_HORIZONTAL
-            }
-            visibility = View.GONE
-        }
-        root.addView(qr)
-
-        detailText = TextView(this).apply {
-            setTextColor(ink)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            typeface = Typeface.MONOSPACE
-            setPadding(0, dp(16), 0, dp(16))
-            setTextIsSelectable(true)
-        }
-
         startButton = button("Start hub", accent, Color.WHITE) { startHub() }
         stopButton = button("Stop hub", Color.parseColor("#B23A3A"), Color.WHITE) { ServdHostService.stop(this) }
         openButton = button("Open dashboard", Color.WHITE, ink) { openDashboard() }
-        val copyButton = button("Copy share URL", Color.WHITE, ink) { copyUrl() }
+        copyButton = button("Copy share URL", Color.WHITE, ink) { copyUrl() }
 
         val buttons = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -126,13 +109,63 @@ class MainActivity : Activity() {
             addView(copyButton)
         }
         root.addView(buttons)
+
+        // Scan-to-join QR, right under the action buttons.
+        qr = ImageView(this).apply {
+            val size = dp(200)
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                topMargin = dp(16); bottomMargin = dp(4); gravity = Gravity.CENTER_HORIZONTAL
+            }
+            visibility = View.GONE
+        }
+        root.addView(qr)
+
+        // Connection details (each field label bold), then the app version pinned at the bottom.
+        detailText = TextView(this).apply {
+            setTextColor(ink)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = Typeface.MONOSPACE
+            setLineSpacing(dp(2).toFloat(), 1f)
+            setPadding(0, dp(8), 0, dp(8))
+            setTextIsSelectable(true)
+        }
         root.addView(detailText)
+
+        root.addView(TextView(this).apply {
+            text = "v${Servd.VERSION}"
+            setTextColor(muted)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(0, dp(2), 0, 0)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        })
 
         return ScrollView(this).apply {
             setBackgroundColor(Color.parseColor("#E9EEEF"))
             addView(root)
+            // On edge-to-edge devices (Android 15+) the content draws behind the status and
+            // navigation bars; pad by the system-bar insets so nothing is hidden behind them.
+            setOnApplyWindowInsetsListener { v, insets ->
+                val p = systemBarInsets(insets)
+                v.setPadding(p[0], p[1], p[2], p[3])
+                insets
+            }
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun systemBarInsets(insets: WindowInsets): IntArray =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val s = insets.getInsets(WindowInsets.Type.systemBars())
+            intArrayOf(s.left, s.top, s.right, s.bottom)
+        } else {
+            intArrayOf(
+                insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight, insets.systemWindowInsetBottom,
+            )
+        }
 
     private fun render() {
         val info = ServdHost.info
@@ -141,6 +174,7 @@ class MainActivity : Activity() {
         startButton.visibility = if (running) View.GONE else View.VISIBLE
         stopButton.visibility = if (running) View.VISIBLE else View.GONE
         openButton.visibility = if (running) View.VISIBLE else View.GONE
+        copyButton.visibility = if (running) View.VISIBLE else View.GONE
 
         if (info == null || !running) {
             statusText.text = "Hub is stopped"
@@ -154,20 +188,34 @@ class MainActivity : Activity() {
         runCatching { qr.setImageBitmap(QrBitmap.of("${info.url}/", dp(200))) }
         qr.visibility = View.VISIBLE
 
-        val lanNote = if (info.onLan) "" else
-            "\nNo Wi-Fi/hotspot detected - reachable on this device only until you connect one.\n"
-        detailText.text = buildString {
-            append("share    : ").append(info.url).append("/\n")
-            append("admin    : ").append(info.adminUrl).append("/  (this device only)\n")
-            append(lanNote)
-            append("\ncert     : self-signed. Verify this SHA-256 fingerprint on first connect:\n")
-            append("           ").append(info.fingerprint).append('\n')
-            append("\nSSH/SFTP : port ").append(info.sshPort)
-            append("   user ").append(info.username).append("   pass ").append(info.password).append('\n')
-            append("FTPS     : port ").append(info.ftpPort)
-            append("   user ").append(info.username).append("   pass ").append(info.password).append('\n')
-            append("\nSSH and FTP start off - enable them from the admin dashboard on this device.")
+        detailText.text = connectionDetails(info)
+    }
+
+    /** Connection details for the host card, with each field label in bold. */
+    private fun connectionDetails(info: ServdHost.Info): CharSequence {
+        val sb = SpannableStringBuilder()
+        fun heading(title: String, note: String? = null) {
+            if (sb.isNotEmpty()) sb.append("\n")
+            val start = sb.length
+            sb.append(title)
+            sb.setSpan(StyleSpan(Typeface.BOLD), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (note != null) sb.append("  ").append(note)
+            sb.append('\n')
         }
+        heading("Admin", "(this device only)"); sb.append(info.adminUrl).append("/")
+        heading("Share"); sb.append(info.url).append("/")
+        if (!info.onLan) {
+            heading("Network")
+            sb.append("No Wi-Fi/hotspot detected - reachable on this device only until you connect one.")
+        }
+        heading("Certificate", "(self-signed)")
+        sb.append("Verify this SHA-256 fingerprint on first connect:\n").append(info.fingerprint)
+        heading("SSH / SFTP")
+        sb.append("port ${info.sshPort}   user ${info.username}   pass ${info.password}")
+        heading("FTPS")
+        sb.append("port ${info.ftpPort}   user ${info.username}   pass ${info.password}")
+        sb.append("\n\nSSH and FTP start off - enable them from the admin dashboard on this device.")
+        return sb
     }
 
     private fun startHub() {
