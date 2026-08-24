@@ -58,13 +58,16 @@
   @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 8%, transparent); } }
   .uptime { font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .spacer { flex: 1 1 auto; }
-  .namebox { display: inline-flex; align-items: center; gap: 7px; }
-  .namebox label { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-  .namebox input { background: var(--surface-2); border: 1px solid var(--border); color: var(--ink); font-family: var(--mono); font-size: 12.5px; border-radius: 8px; padding: 5px 9px; width: 130px; }
+  .namebox { position: relative; display: inline-flex; align-items: center; width: 130px; }
+  .namebox .you-suffix { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 10.5px; color: var(--faint); pointer-events: none; }
+  .namebox input { background: var(--surface-2); border: 1px solid var(--border); color: var(--ink); font-family: var(--mono); font-size: 12.5px; border-radius: 8px; padding: 5px 34px 5px 9px; flex: 1; min-width: 0; }
   .namebox input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  .host-chip { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+  .host-chip { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; cursor: pointer; transition: border-color .15s ease, color .15s ease; }
+  .host-chip:hover { border-color: var(--border-strong); }
+  .host-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .host-chip.copied { border-color: var(--accent); color: var(--accent-ink); }
   .host-chip .lock { color: var(--accent); display: inline-flex; }
-  .chip-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); }
+  .chip-warn { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .04em; color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); border-radius: 100px; padding: 2px 9px; white-space: nowrap; }
   .icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; text-decoration: none; }
   .icon-btn:hover { color: var(--ink); border-color: var(--border-strong); }
   .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -126,13 +129,16 @@
   .composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
   .composer textarea { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; color: var(--ink); font-family: var(--sans); font-size: 13.5px; line-height: 1.4; min-width: 0; resize: none; height: 40px; max-height: 120px; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
   .composer textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  /* keep the placeholder on one line, truncated with an ellipsis, instead of wrapping on narrow screens */
+  .composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* Thin, button-less scrollbar for when the message grows past max-height (no native up/down arrows). */
   .composer textarea::-webkit-scrollbar { width: 8px; }
   .composer textarea::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
   .composer textarea::-webkit-scrollbar-track { background: transparent; }
   /* uniform composer control height: textarea, attach button and send all 40px */
   .composer .icon-btn { width: 40px; height: 40px; }
-  .send { height: 40px; background: var(--accent); color: #04150F; border: 0; border-radius: 9px; padding: 0 16px; font-family: var(--mono); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; }
+  .send { width: 40px; height: 40px; flex-shrink: 0; background: var(--accent); color: #04150F; border: 0; border-radius: 10px; padding: 0; cursor: pointer; display: inline-grid; place-items: center; }
+  .send:disabled { opacity: .45; cursor: default; }
   .send:hover { filter: brightness(1.05); }
   .send:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -162,6 +168,7 @@
   .host-card { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
   .kv { display: flex; flex-direction: column; gap: 3px; }
   .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .k-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .v { font-family: var(--mono); font-size: 13px; color: var(--ink); word-break: break-all; }
   .fingerprint { display: flex; align-items: center; gap: 8px; }
   .fingerprint .v { font-size: 11.5px; color: var(--muted); }
@@ -206,24 +213,32 @@
   }
   @media (max-width: 700px) {
     .app { padding: 12px; gap: 12px; }
-    .topbar { gap: 8px 10px; padding: 10px 12px; }
+    .topbar { gap: 8px 6px; padding: 10px 12px; }
     .brand { font-size: 15px; }
     .uptime { display: none; }
-    /* name input drops to its own full-width row */
-    .namebox { order: 9; flex: 1 1 100%; }
+    /* topbar row 1: brand + status at left, theme + github at right; name and host URL each
+       drop to their own full-width row below */
+    .brand { order: 1; }
+    .status-pill { order: 2; }
+    .spacer { order: 3; }
+    .topbar .icon-btn { order: 4; }
+    .namebox { order: 6; flex: 1 1 100%; width: auto; }
     .namebox input { flex: 1; width: auto; }
-    /* devices become a compact horizontal strip so chat gets the vertical space */
+    .host-chip { order: 7; flex: 1 1 100%; justify-content: flex-start; }
+    /* devices become a compact horizontal strip so chat/files get the vertical space */
     .devices .panel-head { border-bottom: 0; padding-bottom: 4px; }
     #roster { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 12px; }
-    .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px; gap: 8px; }
+    .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; gap: 7px; }
+    .ava { width: 24px; height: 24px; border-radius: 6px; font-size: 10px; }
     .dev-ip { display: none; }
-    .dev-name { max-width: 130px; }
+    .dev-name { font-size: 12px; max-width: 96px; }
     .center { min-height: 66vh; }
     .chat-log { padding: 12px; }
   }
   @media (max-width: 420px) {
     .host-chip { font-size: 11px; padding: 6px 8px; }
-    .dev-name { max-width: 100px; }
+    .ava { width: 22px; height: 22px; }
+    .dev-name { max-width: 84px; }
   }
   @media (prefers-reduced-motion: reduce) { .cursor, .dot.live { animation: none; } * { transition: none !important; } }
 </style>
@@ -235,9 +250,8 @@
       <span class="status-pill" id="statusPill"><span class="dot" id="dot"></span><span id="statusText">connecting...</span></span>
       <span class="uptime" id="uptime"></span>
       <span class="spacer"></span>
-      <span class="namebox"><label for="name">you</label><input id="name" maxlength="40" spellcheck="false" autocomplete="off" /></span>
-      <span class="host-chip"><span class="lock" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span id="hostUrl">-</span></span>
-      <span class="chip-warn" title="Self-signed certificate - verify the fingerprint">self-signed</span>
+      <span class="namebox"><input id="name" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Your display name" /><span class="you-suffix" aria-hidden="true">you</span></span>
+      <span class="host-chip" id="hostChip" role="button" tabindex="0" title="Click to copy the share URL"><span class="lock" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span><span id="hostUrl">-</span></span>
       <button class="icon-btn" id="theme" aria-label="Toggle light / dark theme" title="Toggle light / dark">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
       </button>
@@ -260,26 +274,26 @@
       <!-- center: chat / files -->
       <section class="panel center" aria-label="Chat and files">
         <div class="tabs" role="tablist">
-          <button class="tab" role="tab" aria-selected="true" data-view="chat">chat</button>
-          <button class="tab" role="tab" aria-selected="false" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
+          <button class="tab" role="tab" aria-selected="true" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
+          <button class="tab" role="tab" aria-selected="false" data-view="chat">chat</button>
           <span class="tab-spacer"></span>
-          <button class="mini-btn" id="clearBtn" type="button">clear chat</button>
+          <button class="mini-btn" id="clearBtn" type="button">clear files</button>
         </div>
 
-        <div class="view active" id="view-chat" role="tabpanel">
+        <div class="view" id="view-chat" role="tabpanel">
           <div class="chat-log" id="log"></div>
           <form class="composer" id="composer" autocomplete="off">
             <button type="button" class="icon-btn" id="attach" aria-label="Share a file">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 18.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
             </button>
             <textarea id="text" rows="1" placeholder="Message the hub...  (Enter for new line, Ctrl+Enter to send)" aria-label="Message"></textarea>
-            <button class="send" type="submit" id="send" disabled>send
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+            <button class="send" type="submit" id="send" aria-label="Send" title="Send" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
           </form>
         </div>
 
-        <div class="view" id="view-files" role="tabpanel">
+        <div class="view active" id="view-files" role="tabpanel">
           <div class="files-wrap">
             <label class="drop" id="drop">
               <input type="file" id="fileInput" multiple hidden />
@@ -297,7 +311,8 @@
         <section class="panel host-card">
           <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
           <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
-          <div class="kv"><span class="k">TLS fingerprint (SHA-256)</span>
+          <div class="kv">
+            <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
             <div class="fingerprint"><span class="v" id="admFp">-</span>
               <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
@@ -369,9 +384,20 @@
   }
 
   // ---- status / host card ----
+  // Keep the name box the same width as the share-URL chip (desktop only; on small screens both
+  // are full-width rows). Runs after the chip's address text is set, so its width is up to date.
+  function syncNameWidth(){
+    const nb=document.querySelector('.namebox'), chip=$("hostChip");
+    if(!nb||!chip) return;
+    if(window.innerWidth>700 && $("hostUrl").textContent.trim()!=="-") nb.style.width=chip.offsetWidth+"px";
+    else if(window.innerWidth<=700) nb.style.width="";
+  }
+  window.addEventListener("resize", syncNameWidth);
+
   function loadStatus(){
     fetch("/status").then(r=>r.json()).then(s => {
-      $("hostUrl").textContent = s.address + ":" + s.port;
+      $("hostUrl").textContent = location.protocol + "//" + s.address + ":" + s.port;
+      syncNameWidth();
       $("uptime").textContent = fmtUptime(s.uptimeMs);
       lastConnected = s.connected;
       if (!$("rail").hidden) {
@@ -487,6 +513,7 @@
   }));
   function activeView(){ return document.querySelector('.tab[aria-selected="true"]').dataset.view; }
   function updateClearBtn(){ $("clearBtn").textContent = activeView()==="files" ? "clear files" : "clear chat"; }
+  updateClearBtn(); // reflect the default tab (files) on load
   $("clearBtn").addEventListener("click",()=>{
     if(activeView()==="files"){
       if(confirm("Delete all shared files for everyone?")) fetch("/files?from="+encodeURIComponent(userName),{method:"DELETE"}).catch(()=>{});
@@ -498,12 +525,34 @@
   // ---- copy fingerprint ----
   $("copyfp").addEventListener("click",()=>{ if(navigator.clipboard) navigator.clipboard.writeText($("admFp").textContent); });
 
+  // ---- copy share URL (click the host chip) ----
+  (function(){
+    const chip=$("hostChip"); if(!chip) return;
+    function copyShare(){
+      const host=$("hostUrl").textContent.trim(); // already includes the https:// scheme
+      if(!host || host==="-" || !navigator.clipboard) return;
+      navigator.clipboard.writeText(host+"/").then(()=>{
+        chip.classList.add("copied"); setTimeout(()=>chip.classList.remove("copied"),1200);
+      }).catch(()=>{});
+    }
+    chip.addEventListener("click",copyShare);
+    chip.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); copyShare(); } });
+  })();
+
   // ---- name ----
   nameInput.addEventListener("change",()=>{ userName=nameInput.value.trim()||userName; nameInput.value=userName; localStorage.setItem("servd-name",userName); setTitle(); sayHello(); });
   nameInput.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nameInput.blur(); } });
 
   // ---- composer ----
-  function autoGrow(){ textInput.style.height="auto"; const sh=textInput.scrollHeight; textInput.style.height=Math.min(sh,120)+"px"; textInput.style.overflowY = sh>120 ? "auto" : "hidden"; }
+  function autoGrow(){
+    textInput.style.height="auto";
+    const cs=getComputedStyle(textInput);
+    const border=parseFloat(cs.borderTopWidth)+parseFloat(cs.borderBottomWidth);
+    // empty: stay one line so a long placeholder never grows the box; otherwise size to content
+    const full=textInput.value ? textInput.scrollHeight+border : 40; // border-box: add borders so text isn't clipped
+    textInput.style.height=Math.max(40,Math.min(full,120))+"px"; // never below one line (40px), never above 120
+    textInput.style.overflowY = full>120 ? "auto" : "hidden";
+  }
   function sendMsg(){ const t=textInput.value.replace(/\s+$/,""); if(!t||!ws||ws.readyState!==1) return; ws.send(JSON.stringify({type:"chat",text:t})); textInput.value=""; autoGrow(); }
   $("composer").addEventListener("submit",e=>{ e.preventDefault(); sendMsg(); });
   // Enter inserts a newline (textarea default); Ctrl/Cmd+Enter sends.
