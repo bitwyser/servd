@@ -157,7 +157,9 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
             }
             // File sharing: upload (multipart), list (newest first), download (by id).
             post("/files") {
-                val multipart = call.receiveMultipart()
+                // Ktor caps multipart parts at ~50 MB by default, which silently 500s bigger uploads.
+                // File parts are streamed straight to disk below, so lift the cap well up (5 GB).
+                val multipart = call.receiveMultipart(formFieldLimit = 5L * 1024 * 1024 * 1024)
                 var from = "someone"
                 val saved = mutableListOf<FileMeta>()
                 multipart.forEachPart { part ->

@@ -469,7 +469,7 @@
   }
   function addFile(f, announce){ const isNew=!files.has(f.id); files.set(f.id,f); renderFiles(); if(isNew&&announce) addFileMsg(f); }
   function loadFiles(){ fetch("/files").then(r=>r.json()).then(list=>{ list.forEach(f=>files.set(f.id,f)); renderFiles(); }).catch(()=>{}); }
-  function upload(fileList){ for(const file of fileList){ const fd=new FormData(); fd.append("from",userName); fd.append("file",file,file.name); fetch("/files",{method:"POST",body:fd}).catch(()=>addSys("upload failed: "+file.name)); } }
+  function upload(fileList){ for(const file of fileList){ const fd=new FormData(); fd.append("from",userName); fd.append("file",file,file.name); fetch("/files",{method:"POST",body:fd}).then(r=>{ if(!r.ok) addSys("upload failed: "+file.name); }).catch(()=>addSys("upload failed: "+file.name)); } }
 
   ["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over");}));
   ["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over");}));
