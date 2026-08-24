@@ -24,6 +24,7 @@ and the UI is the served dashboard on every platform.
 
 - [Overview](#overview)
 - [Features](#features)
+- [Download](#download)
 - [Requirements](#requirements)
 - [Quick start (desktop)](#quick-start-desktop)
 - [Android](#android)
@@ -81,6 +82,22 @@ download dependencies; a packaged build - or one you've already built - runs wit
 
 ---
 
+## Download
+
+Grab a prebuilt build from the [**latest release**](https://github.com/patkarmandar/servd/releases/latest)
+- no toolchain or build step needed:
+
+| Platform | Asset | Run it |
+|---|---|---|
+| **Windows** | `servd-<version>-windows.zip` | unzip, then run `servd\servd.exe` |
+| **Linux** | `servd-<version>-x86_64.AppImage` | `chmod +x` it, then run it |
+| **Android** | `servd-<version>-release.apk` | install the APK (allow "unknown sources") |
+
+The desktop builds bundle their own Java runtime, so nothing else is required. Prefer to build it
+yourself? See [Quick start](#quick-start-desktop).
+
+---
+
 ## Requirements
 
 **To build from source:**
@@ -113,7 +130,7 @@ From the repo root:
 opens the dashboard in your browser. You'll see:
 
 ```
-servd v1.0.0 - local-network server tool
+servd v1.1.1 - local-network server tool
 
 admin   : https://127.0.0.1:8443   (this machine only)
 serving : https://10.205.210.12:8443   (share with other devices)
@@ -259,10 +276,10 @@ Builds the desktop **app image** (bundled JRE) and the Android **debug APK**, pl
 
 ```
 dist/
-├─ servd-1.0.0-windows.zip           self-contained desktop app (Windows)
-├─ servd-1.0.0-linux-x86_64.tar.gz   self-contained desktop app (Linux/macOS)
-├─ servd-1.0.0-debug.apk             Android debug build
-└─ servd-1.0.0-release.apk           Android release build (only if signed)
+├─ servd-<version>-windows.zip           self-contained desktop app (Windows)
+├─ servd-<version>-linux-x86_64.tar.gz   self-contained desktop app (Linux/macOS)
+├─ servd-<version>-debug.apk             Android debug build
+└─ servd-<version>-release.apk           Android release build (only if signed)
 ```
 
 | `package.ps1` flag | `package.sh` flag | Effect |
@@ -306,7 +323,7 @@ per-OS - build each artifact on its own platform.**
 ./package.sh --appimage
 ```
 
-It wraps the app image into `dist/servd-1.0.0-<arch>.AppImage`, already marked executable. This
+It wraps the app image into `dist/servd-<version>-<arch>.AppImage`, already marked executable. This
 needs [`appimagetool`](https://appimage.github.io/appimagetool/) on `PATH`; without it the step is
 skipped with a note.
 
@@ -358,8 +375,8 @@ each artifact is built on its native runner, then all are attached to a GitHub R
 2. Commit, then tag and push. The tag must be `v<servdVersion>`:
 
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag v1.1.1
+   git push origin v1.1.1
    ```
 
 CI verifies the tag matches the version, builds all three artifacts, and publishes the release with
