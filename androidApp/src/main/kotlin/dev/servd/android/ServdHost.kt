@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
+import android.os.Environment
 import android.util.Log
 import dev.servd.core.Servd
 import dev.servd.core.net.detectLanAddress
@@ -79,6 +80,7 @@ object ServdHost {
             Netty, "0.0.0.0", advertisedHost, PORT, tls, filesDir, listOf(ftp, ssh),
             hostName = deviceName(),
             interfaceName = lan?.interfaceName,
+            pickerRoots = storagePickerRoots(),
         )
         srv.start(wait = false)
         server = srv
@@ -107,6 +109,21 @@ object ServdHost {
     private fun deviceName(): String {
         val model = Build.MODEL?.trim().orEmpty()
         return model.ifBlank { "android" }
+    }
+
+    /**
+     * Where the host folder picker starts on Android. The true filesystem root "/" is mostly
+     * unreadable, so we begin at the phone's shared storage (needs all-files access to list),
+     * and still offer "/" for power users. From either, "up"/navigation reaches everything else.
+     */
+    private fun storagePickerRoots(): List<Pair<String, String>> {
+        val roots = mutableListOf<Pair<String, String>>()
+        runCatching {
+            val ext = Environment.getExternalStorageDirectory()
+            if (ext != null && ext.isDirectory) roots += "Internal storage" to ext.absolutePath
+        }
+        roots += "Device root (/)" to "/"
+        return roots
     }
 
     // Advertise over mDNS (same _servd._tcp service desktop uses) so other devices can discover

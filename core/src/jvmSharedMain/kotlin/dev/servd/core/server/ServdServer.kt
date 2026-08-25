@@ -76,14 +76,17 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     browseDir: String? = null,
     /** Whether the initial browse root allows uploads. */
     browseWritable: Boolean = false,
+    /** Starting folders (label to path) for the host folder picker; empty = filesystem roots. */
+    pickerRoots: List<Pair<String, String>> = emptyList(),
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
     private val startedAt = System.currentTimeMillis()
     private val chatHub = ChatHub(serverName = advertisedHost)
     private val fileStore = FileStore(filesDir)
-    private val browser = Browser().apply {
-        if (browseDir != null) runCatching { enable(browseDir, browseWritable) }
+    private val browser = Browser().also { b ->
+        b.pickerRoots = pickerRoots.map { (label, path) -> Browser.PickerDir(label, path) }
+        if (browseDir != null) runCatching { b.enable(browseDir, browseWritable) }
     }
     private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }

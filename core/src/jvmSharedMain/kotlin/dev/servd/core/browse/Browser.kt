@@ -16,6 +16,13 @@ class Browser {
     @Volatile private var rootDir: File? = null
     @Volatile private var writeEnabled: Boolean = false
 
+    /**
+     * Starting folders for the host's folder picker (blank path). Empty = the filesystem roots
+     * (drive letters on Windows, "/" on Unix). Android sets this to the phone's storage dirs,
+     * which are the useful place to start (the true root "/" is mostly unreadable).
+     */
+    @Volatile var pickerRoots: List<PickerDir> = emptyList()
+
     val enabled: Boolean get() = rootDir != null
     val writable: Boolean get() = writeEnabled && rootDir != null
     val rootPath: String? get() = rootDir?.absolutePath
@@ -94,7 +101,7 @@ class Browser {
     /** Host-only folder picker: directories under [path] (drive/filesystem roots if blank). */
     fun serverDirs(path: String?): PickerListing {
         if (path.isNullOrBlank()) {
-            val roots = File.listRoots().map { PickerDir(it.absolutePath, it.absolutePath) }
+            val roots = pickerRoots.ifEmpty { File.listRoots().map { PickerDir(it.absolutePath, it.absolutePath) } }
             return PickerListing(current = "", parent = null, dirs = roots)
         }
         val here = File(path).canonicalFile

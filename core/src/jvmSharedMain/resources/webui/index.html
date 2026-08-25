@@ -673,15 +673,15 @@
     }).catch(()=>{});
   }
   function loadPicker(path){
-    fetch("/admin/browse/dirs?path="+encodeURIComponent(path||"")).then(r=>r.json()).then(p=>{
+    fetch("/admin/browse/dirs?path="+encodeURIComponent(path||"")).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(p=>{
       brPickCur=p.current||""; brPickParent=p.parent||"";
-      $("brPickPath").textContent = p.current || "(drives)";
+      $("brPickPath").textContent = p.current || "(start)";
       $("brPickUp").style.visibility = p.current ? "" : "hidden";
       $("brPickRoot").style.visibility = p.current ? "" : "hidden";
       const el=$("brPickList"); el.innerHTML="";
-      if(!p.dirs.length){ el.innerHTML='<div class="br-pick-item empty">No sub-folders.</div>'; }
+      if(!p.dirs.length){ el.innerHTML='<div class="br-pick-item empty">No sub-folders here (a folder with only files, or no access).</div>'; }
       for(const d of p.dirs){ const it=document.createElement("div"); it.className="br-pick-item"; it.innerHTML='<span class="bic">'+FICON+'</span><span>'+esc(d.name)+'</span>'; it.title=d.path; it.addEventListener("click",()=>loadPicker(d.path)); el.appendChild(it); }
-    }).catch(()=>{});
+    }).catch(()=>{ $("brPickList").innerHTML='<div class="br-pick-item empty">Couldn\'t load folders.</div>'; });
   }
   $("brPickUp").addEventListener("click",()=>loadPicker(brPickParent));
   $("brPickRoot").addEventListener("click",()=>loadPicker(""));
