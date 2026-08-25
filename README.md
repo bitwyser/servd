@@ -69,6 +69,9 @@ download dependencies; a packaged build - or one you've already built - runs wit
 - **Connected-device roster** - see who is on the hub, live, with join/leave.
 - **Drag-n-drop file sharing** - drop a file and it appears on every device instantly; download,
   delete one, or clear all.
+- **Browse a host-chosen folder** (optional) - the host can serve a real directory (read-only, or
+  with uploads) that clients list, traverse, and download in a **browse** tab; off by default, set
+  up from the host-only admin panel, and jailed to the chosen folder.
 - **Scan-to-join QR** of the hub URL, so a phone joins without typing an IP.
 - **SSH/SFTP server** (optional) - credentialed SFTP jailed to the shared files, no OS shell.
 - **FTPS server** (optional) - explicit-TLS FTP, same credential, jailed to the shared files.
@@ -222,6 +225,8 @@ The runner passes servd flags straight through:
 | `--host IP` | Bind address | detected LAN IP (else `127.0.0.1`) |
 | `--dir PATH` | Data dir (keystore, files, credential) | `~/.servd` |
 | `--no-open` | Don't auto-open the browser | (opens) |
+| `--browse-dir PATH` | Serve this folder to clients on start (see [File browsing](#file-browsing-serve-a-host-folder)) | (off) |
+| `--browse-write` | Allow uploads into the browsed folder | read-only |
 
 Find running hubs on the network without typing an IP:
 
@@ -235,6 +240,24 @@ Any Gradle task passes through too, e.g. `.\run.ps1 :core:desktopTest`.
 
 On desktop, servd keeps its TLS keystore, the shared files, and the SSH/FTP credential under
 `~/.servd` (override with `--dir`). On Android the equivalent lives in the app's private storage.
+
+### File browsing (serve a host folder)
+
+Beyond the shared **Files** drop, the host can expose a **real directory** on its device for clients
+to browse - list folders, traverse, and download, with optional uploads. It is **off by default**
+and configured only from the **host-only admin panel** (loopback):
+
+1. Open the dashboard on the host (`127.0.0.1`) and, in **File browsing**, navigate the built-in
+   picker to a folder (a whole drive works too).
+2. Tick **allow uploads** for read + write, or leave it unticked for read-only, then
+   **share this folder**. Clients get a **browse** tab to list, open, and download; **stop sharing**
+   turns it off, and you can switch to a different folder at any time.
+
+On desktop you can also start it straight from the CLI with `--browse-dir PATH` (add `--browse-write`
+to permit uploads). On **Android**, browsing the phone's storage needs **all-files access** - tap
+**Allow file browsing (storage access)** on the control screen and grant it in system settings; the
+picker then starts at **Internal storage**. Everything served is **jailed to the chosen folder** -
+paths that try to escape it are refused.
 
 ---
 
@@ -250,6 +273,9 @@ servd is built for a **trusted LAN**, and its boundaries are deliberate:
 - **SSH and FTP** require the generated credential - never anonymous. FTP is FTPS (explicit TLS),
   SFTP is encrypted by design, and both are **jailed to the shared files directory** (no OS shell,
   no access outside that folder).
+- **File browsing** (serving a host folder) is **off by default**, configured only from the host
+  (loopback admin), and **jailed to the chosen folder** - clients cannot traverse above it, and
+  uploads are refused unless the host enabled them.
 - **Transport is encrypted** end to end on the wire (HTTPS/WSS, SSH, FTPS), verified by the cert
   **fingerprint** rather than a CA. This is **transport encryption, not end-to-end**: the host
   device (the server) can see traffic, as expected for a hub.
@@ -420,7 +446,7 @@ PowerShell, `[Convert]::ToBase64String([IO.File]::ReadAllBytes("servd-release.jk
 servd/
 ├─ core/         Kotlin Multiplatform library - the engine (shared by desktop + Android)
 │   ├─ commonMain      protocol models, PeerRegistry, LAN-address selection, Service model
-│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, QR, SSH + FTP services
+│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, directory browser, QR, SSH + FTP
 │   ├─ desktopMain     desktop-only: JmDNS discovery
 │   ├─ androidMain     Android glue
 │   └─ .../resources/webui   the served dashboard (single HTML/CSS/JS file)
@@ -457,6 +483,8 @@ provider.
   `ChatHub` broadcasts join/leave and messages.
 - **Files:** `POST /files` (multipart upload), `GET /files` (list), `GET /files/{id}` (download),
   with delete/clear routes.
+- **File browsing:** `GET /fs/list` + `GET /fs/file` list and download a host-served folder, and
+  `POST /fs/upload` when writable; the host configures the served root via loopback `/admin/browse*`.
 - **Admin:** `/admin/*` routes report and toggle services, gated to loopback.
 
 ### Deliberately out of scope
