@@ -71,6 +71,8 @@ fun main(args: Array<String>) {
         Netty, bindHost, advertisedHost, opts.port, tls, filesDir, listOf(ftpService, sshService),
         hostName = hostName(),
         interfaceName = lan?.interfaceName,
+        browseDir = opts.browseDir,
+        browseWritable = opts.browseWrite,
     )
 
     // When bound to all interfaces, the host reaches admin via loopback; a specific --host
@@ -147,6 +149,8 @@ private data class Opts(
     val host: String? = null,
     val dir: String? = null,
     val noOpen: Boolean = false,
+    val browseDir: String? = null,
+    val browseWrite: Boolean = false,
 ) {
     companion object {
         fun parse(args: Array<String>): Opts {
@@ -154,6 +158,8 @@ private data class Opts(
             var host: String? = null
             var dir: String? = null
             var noOpen = false
+            var browseDir: String? = null
+            var browseWrite = false
             var i = 0
             while (i < args.size) {
                 when (args[i]) {
@@ -162,10 +168,12 @@ private data class Opts(
                     "--host" -> host = args.getOrNull(++i)
                     "--dir" -> dir = args.getOrNull(++i)
                     "--no-open" -> noOpen = true
+                    "--browse-dir" -> browseDir = args.getOrNull(++i)
+                    "--browse-write" -> browseWrite = true
                 }
                 i++
             }
-            return Opts(port, host, dir, noOpen)
+            return Opts(port, host, dir, noOpen, browseDir, browseWrite)
         }
     }
 }

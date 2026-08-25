@@ -1,6 +1,7 @@
 package dev.servd.core.server
 
 import dev.servd.core.Servd
+import dev.servd.core.browse.Browser
 import dev.servd.core.chat.ChatHub
 import dev.servd.core.chat.ChatSend
 import dev.servd.core.chat.ClearChat
@@ -71,12 +72,19 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val hostName: String = "servd",
     /** Bound network interface name (e.g. "wlan0"), shown in the host card. */
     private val interfaceName: String? = null,
+    /** Optional initial browse root (a folder served to clients); off if null. */
+    browseDir: String? = null,
+    /** Whether the initial browse root allows uploads. */
+    browseWritable: Boolean = false,
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
     private val startedAt = System.currentTimeMillis()
     private val chatHub = ChatHub(serverName = advertisedHost)
     private val fileStore = FileStore(filesDir)
+    private val browser = Browser().apply {
+        if (browseDir != null) runCatching { enable(browseDir, browseWritable) }
+    }
     private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
@@ -214,8 +222,72 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                 chatHub.announceFilesCleared(from)
                 call.respond(HttpStatusCode.OK)
             }
+            // ---- Browse: a host-chosen directory served to LAN clients (off unless the host
+            // enables it from the admin panel). Paths are relative to the root and jailed inside it.
+            get("/fs/info") {
+                call.respondText(json.encodeToString(browser.info()), ContentType.Application.Json)
+            }
+            get("/fs/list") {
+                if (!browser.enabled) return@get call.respond(HttpStatusCode.NotFound)
+                val listing = browser.list(call.request.queryParameters["path"] ?: "")
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+                call.respondText(json.encodeToString(listing), ContentType.Application.Json)
+            }
+            get("/fs/file") {
+                if (!browser.enabled) return@get call.respond(HttpStatusCode.NotFound)
+                val f = call.request.queryParameters["path"]?.let { browser.download(it) }
+                    ?: return@get call.respond(HttpStatusCode.NotFound)
+                call.response.header(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, f.name).toString(),
+                )
+                call.respondFile(f)
+            }
+            post("/fs/upload") {
+                if (!browser.enabled) return@post call.respond(HttpStatusCode.NotFound)
+                if (!browser.writable) return@post call.respond(HttpStatusCode.Forbidden)
+                val dir = call.request.queryParameters["path"] ?: ""
+                val multipart = call.receiveMultipart(formFieldLimit = 5L * 1024 * 1024 * 1024)
+                var ok = false
+                multipart.forEachPart { part ->
+                    if (part is PartData.FileItem) {
+                        val name = part.originalFileName ?: "file"
+                        val saved = part.provider().toInputStream().use { browser.upload(dir, name, it) }
+                        ok = saved || ok
+                    }
+                    part.dispose()
+                }
+                call.respond(if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest)
+            }
+
             // Host-only admin API: reachable from loopback (the host machine) only, so LAN
             // devices can use the dashboard but cannot reconfigure the server.
+            get("/admin/browse") {
+                if (!call.isLoopbackClient()) return@get call.respond(HttpStatusCode.Forbidden)
+                call.respondText(json.encodeToString(browser.config()), ContentType.Application.Json)
+            }
+            post("/admin/browse") {
+                if (!call.isLoopbackClient()) return@post call.respond(HttpStatusCode.Forbidden)
+                val p = call.request.queryParameters
+                val enable = p["enabled"]?.toBoolean() ?: false
+                val writable = p["writable"]?.toBoolean() ?: false
+                val path = p["path"]
+                val ok = runCatching {
+                    if (enable && !path.isNullOrBlank()) browser.enable(path, writable) else browser.disable()
+                }.isSuccess
+                call.respondText(
+                    json.encodeToString(browser.config()),
+                    ContentType.Application.Json,
+                    status = if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest,
+                )
+            }
+            get("/admin/browse/dirs") {
+                if (!call.isLoopbackClient()) return@get call.respond(HttpStatusCode.Forbidden)
+                call.respondText(
+                    json.encodeToString(browser.serverDirs(call.request.queryParameters["path"])),
+                    ContentType.Application.Json,
+                )
+            }
             get("/admin/services") {
                 if (!call.isLoopbackClient()) return@get call.respond(HttpStatusCode.Forbidden)
                 call.respondText(json.encodeToString(serviceManager.list()), ContentType.Application.Json)

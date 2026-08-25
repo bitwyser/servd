@@ -166,12 +166,32 @@
   .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); cursor: pointer; text-decoration: none; }
   .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
   .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 10px; }
+  /* browse tab */
+  .browse-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .browse-bar { display: flex; align-items: center; gap: 8px; }
+  .brpath { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brlist { overflow-y: auto; min-height: 0; }
+  .frow.dir { cursor: pointer; }
+  .frow.dir:hover { border-color: var(--accent); }
+  /* admin: file browsing */
+  .adm-browse-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .br-status { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.5; word-break: break-all; }
+  .br-picker { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .br-pick-bar { display: flex; align-items: center; gap: 8px; }
+  .nav-btns { display: flex; gap: 4px; }
+  .br-pick-list { max-height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+  .br-pick-item { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12.5px; color: var(--ink); padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+  .br-pick-item span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .br-pick-item .bic { color: var(--accent); display: inline-flex; flex-shrink: 0; }
+  .br-pick-item:hover { background: var(--surface-2); }
+  .br-pick-item.empty { color: var(--faint); cursor: default; }
+  .br-write { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .br-pick-actions, .br-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
   /* ---------- right rail ---------- */
   .rail { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; min-height: 0; }
   .rail[hidden] { display: none; } /* class rule would otherwise override the hidden attribute */
-  .svc-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .svc-panel #svcList { flex: 1; min-height: 0; overflow-y: auto; }
+  .svc-panel { flex: 0 0 auto; display: flex; flex-direction: column; }
   .host-card { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
   .kv { display: flex; flex-direction: column; gap: 3px; }
   .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
@@ -283,6 +303,7 @@
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" aria-selected="true" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-view="chat">chat</button>
+          <button class="tab" role="tab" aria-selected="false" data-view="browse" id="browseTab" style="display:none">browse</button>
           <span class="tab-spacer"></span>
           <button class="mini-btn" id="clearBtn" type="button">clear files</button>
         </div>
@@ -311,6 +332,20 @@
             <div class="flist" id="flist"><div class="files-empty">No files shared yet.</div></div>
           </div>
         </div>
+
+        <div class="view" id="view-browse" role="tabpanel">
+          <div class="browse-wrap">
+            <div class="browse-bar">
+              <span class="nav-btns"><button class="mini-btn" id="brRoot" type="button" title="Root folder">root</button><button class="mini-btn" id="brUp" type="button" title="Up one level">up</button></span>
+              <span class="brpath" id="brPath">/</span>
+              <button type="button" class="icon-btn" id="brAttach" title="Upload to this folder" style="display:none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
+              </button>
+              <input type="file" id="brFileInput" multiple hidden />
+            </div>
+            <div class="brlist flist" id="brList"><div class="files-empty">Loading&hellip;</div></div>
+          </div>
+        </div>
       </section>
 
       <!-- right rail: host + servers (host machine only) -->
@@ -324,6 +359,25 @@
               <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
               </button>
+            </div>
+          </div>
+        </section>
+        <section class="panel adm-browse">
+          <div class="panel-head"><span class="panel-title">File browsing</span></div>
+          <div class="adm-browse-body">
+            <div class="br-status" id="brStatus">Off - clients cannot browse your files.</div>
+            <div class="br-picker" id="brPicker">
+              <div class="br-pick-bar"><span class="nav-btns"><button class="mini-btn" id="brPickRoot" type="button">root</button><button class="mini-btn" id="brPickUp" type="button">up</button></span><span class="brpath" id="brPickPath">-</span></div>
+              <div class="br-pick-list" id="brPickList"></div>
+              <label class="br-write"><input type="checkbox" id="brWrite" /> allow uploads (writable)</label>
+            </div>
+            <div class="br-actions">
+              <button class="mini-btn" id="brShare" type="button">share this folder</button>
+              <button class="mini-btn" id="brStop" type="button" hidden>stop sharing</button>
+            </div>
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Exposes the chosen folder to everyone on the network (no login). Off by default.
             </div>
           </div>
         </section>
@@ -542,9 +596,97 @@
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); })
+      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); })
       .catch(()=>{ $("rail").hidden=true; $("grid").classList.add("no-rail"); });
   }
+
+  // ---- browse: a host-served directory (list / download / traverse / upload) ----
+  const FICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  let brCur=""; let brWritable=false;
+  function loadBrowseInfo(){
+    fetch("/fs/info").then(r=>r.json()).then(info=>{
+      $("browseTab").style.display = info.enabled ? "" : "none";
+      brWritable = !!info.writable;
+      $("brAttach").style.display = info.writable ? "" : "none";
+      if(!info.enabled && activeView()==="browse") document.querySelector('.tab[data-view="files"]').click();
+    }).catch(()=>{});
+  }
+  function openBrowse(path){
+    brCur = path||"";
+    $("brList").innerHTML='<div class="files-empty">Loading&hellip;</div>';
+    fetch("/fs/list?path="+encodeURIComponent(brCur)).then(r=>{ if(!r.ok) throw 0; return r.json(); })
+      .then(renderBrowse).catch(()=>{
+        $("brList").innerHTML='<div class="files-empty">Cannot open this folder.</div>';
+        $("brPath").textContent = "/"+brCur;
+        $("brUp").style.visibility = brCur ? "" : "hidden";
+        $("brRoot").style.visibility = brCur ? "" : "hidden";
+      });
+  }
+  function renderBrowse(l){
+    brCur = l.path||"";
+    $("brPath").textContent = "/"+brCur;
+    $("brUp").style.visibility = brCur ? "" : "hidden";
+    $("brRoot").style.visibility = brCur ? "" : "hidden";
+    $("brAttach").style.display = brWritable ? "" : "none";
+    const el=$("brList"); el.innerHTML="";
+    if(!l.entries.length){ el.innerHTML='<div class="files-empty">Empty folder.</div>'; return; }
+    for(const e of l.entries){
+      const child = brCur ? brCur+"/"+e.name : e.name;
+      const row=document.createElement("div"); row.className="frow"+(e.dir?" dir":"");
+      if(e.dir){
+        row.innerHTML='<span class="fi">'+FICON+'</span><div class="fmeta"><div class="fname">'+esc(e.name)+'</div><div class="fsub">folder</div></div><span class="fsize"></span>';
+        row.addEventListener("click",()=>openBrowse(child));
+      } else {
+        row.innerHTML='<span class="fi">'+esc(ext(e.name))+'</span><div class="fmeta"><div class="fname">'+esc(e.name)+'</div><div class="fsub">'+time(e.mtime)+'</div></div><span class="fsize">'+fmtSize(e.size)+'</span>'+
+          '<a class="dl" href="/fs/file?path='+encodeURIComponent(child)+'" download="'+esc(e.name)+'" title="Download">'+DLICON+'</a>';
+      }
+      el.appendChild(row);
+    }
+  }
+  $("brUp").addEventListener("click",()=>openBrowse(brCur.replace(/\/?[^/]*$/,"")));
+  $("brRoot").addEventListener("click",()=>openBrowse(""));
+  $("brAttach").addEventListener("click",()=>$("brFileInput").click());
+  $("brFileInput").addEventListener("change",()=>{ if($("brFileInput").files.length){ browseUpload($("brFileInput").files); $("brFileInput").value=""; } });
+  function browseUpload(fileList){
+    let pending=fileList.length;
+    for(const file of fileList){
+      const fd=new FormData(); fd.append("file",file,file.name);
+      fetch("/fs/upload?path="+encodeURIComponent(brCur),{method:"POST",body:fd})
+        .then(r=>{ if(!r.ok) addSys("upload failed: "+file.name); })
+        .catch(()=>addSys("upload failed: "+file.name))
+        .finally(()=>{ if(--pending===0) openBrowse(brCur); });
+    }
+  }
+
+  // ---- admin: file browsing (host only) ----
+  let brPickCur=""; let brPickParent="";
+  function loadAdmBrowse(){
+    fetch("/admin/browse").then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(c=>{
+      if(c.enabled){ $("brStatus").textContent="Sharing "+c.rootPath+" ("+(c.writable?"read + upload":"read-only")+")."; $("brStop").hidden=false; }
+      else { $("brStatus").textContent="Off - clients cannot browse your files."; $("brStop").hidden=true; }
+    }).catch(()=>{});
+  }
+  function loadPicker(path){
+    fetch("/admin/browse/dirs?path="+encodeURIComponent(path||"")).then(r=>r.json()).then(p=>{
+      brPickCur=p.current||""; brPickParent=p.parent||"";
+      $("brPickPath").textContent = p.current || "(drives)";
+      $("brPickUp").style.visibility = p.current ? "" : "hidden";
+      $("brPickRoot").style.visibility = p.current ? "" : "hidden";
+      const el=$("brPickList"); el.innerHTML="";
+      if(!p.dirs.length){ el.innerHTML='<div class="br-pick-item empty">No sub-folders.</div>'; }
+      for(const d of p.dirs){ const it=document.createElement("div"); it.className="br-pick-item"; it.innerHTML='<span class="bic">'+FICON+'</span><span>'+esc(d.name)+'</span>'; it.title=d.path; it.addEventListener("click",()=>loadPicker(d.path)); el.appendChild(it); }
+    }).catch(()=>{});
+  }
+  $("brPickUp").addEventListener("click",()=>loadPicker(brPickParent));
+  $("brPickRoot").addEventListener("click",()=>loadPicker(""));
+  $("brShare").addEventListener("click",()=>{
+    if(!brPickCur){ alert("Open a folder first, then share it."); return; }
+    fetch("/admin/browse?enabled=true&writable="+$("brWrite").checked+"&path="+encodeURIComponent(brPickCur),{method:"POST"})
+      .then(r=>r.json()).then(()=>{ loadAdmBrowse(); loadBrowseInfo(); openBrowse(""); }).catch(()=>{});
+  });
+  $("brStop").addEventListener("click",()=>{
+    fetch("/admin/browse?enabled=false",{method:"POST"}).then(()=>{ loadAdmBrowse(); loadBrowseInfo(); }).catch(()=>{});
+  });
 
   // ---- tabs ----
   document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{
@@ -553,9 +695,10 @@
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     $("view-"+tab.dataset.view).classList.add("active");
     updateClearBtn();
+    if(tab.dataset.view==="browse") openBrowse(brCur);
   }));
   function activeView(){ return document.querySelector('.tab[aria-selected="true"]').dataset.view; }
-  function updateClearBtn(){ $("clearBtn").textContent = activeView()==="files" ? "clear files" : "clear chat"; }
+  function updateClearBtn(){ const v=activeView(); $("clearBtn").style.display = v==="browse" ? "none" : ""; $("clearBtn").textContent = v==="files" ? "clear files" : "clear chat"; }
   updateClearBtn(); // reflect the default tab (files) on load
   $("clearBtn").addEventListener("click",()=>{
     if(activeView()==="files"){
@@ -606,7 +749,7 @@
   // ---- websocket ----
   function connect(){
     ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
-    ws.onopen=()=>{ setConn(true); sayHello(); loadStatus(); };
+    ws.onopen=()=>{ setConn(true); sayHello(); loadStatus(); loadBrowseInfo(); };
     ws.onclose=()=>{ setConn(false); clearTimeout(retry); retry=setTimeout(connect,1500); };
     ws.onerror=()=>ws.close();
     ws.onmessage=ev=>{ let m; try{ m=JSON.parse(ev.data); }catch{ return; }
@@ -629,6 +772,7 @@
   checkAdmin();
   connect();
   setInterval(loadStatus, 15000); // keep uptime / connected count fresh
+  setInterval(loadBrowseInfo, 15000); // pick up the host enabling/disabling browsing
 </script>
 </body>
 </html>

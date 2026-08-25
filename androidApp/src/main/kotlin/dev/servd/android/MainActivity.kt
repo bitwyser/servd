@@ -14,6 +14,8 @@ import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.StyleSpan
@@ -43,6 +45,7 @@ class MainActivity : Activity() {
     private lateinit var stopButton: Button
     private lateinit var openButton: Button
     private lateinit var copyButton: Button
+    private lateinit var storageButton: Button
 
     private val ink = Color.parseColor("#0F1A1F")
     private val muted = Color.parseColor("#5A6B72")
@@ -100,6 +103,7 @@ class MainActivity : Activity() {
         stopButton = button("Stop hub", Color.parseColor("#B23A3A"), Color.WHITE) { ServdHostService.stop(this) }
         openButton = button("Open dashboard", Color.WHITE, ink) { openDashboard() }
         copyButton = button("Copy share URL", Color.WHITE, ink) { copyUrl() }
+        storageButton = button("Allow file browsing (storage access)", Color.WHITE, ink) { requestAllFilesAccess() }
 
         val buttons = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -107,6 +111,7 @@ class MainActivity : Activity() {
             addView(stopButton)
             addView(openButton)
             addView(copyButton)
+            addView(storageButton)
         }
         root.addView(buttons)
 
@@ -175,6 +180,11 @@ class MainActivity : Activity() {
         stopButton.visibility = if (running) View.VISIBLE else View.GONE
         openButton.visibility = if (running) View.VISIBLE else View.GONE
         copyButton.visibility = if (running) View.VISIBLE else View.GONE
+        storageButton.visibility = if (running) View.VISIBLE else View.GONE
+        storageButton.text =
+            if (hasAllFilesAccess()) "Storage access granted (for file browsing)"
+            else "Allow file browsing (storage access)"
+        storageButton.isEnabled = !hasAllFilesAccess()
 
         if (info == null || !running) {
             statusText.text = "Hub is stopped"
@@ -242,6 +252,35 @@ class MainActivity : Activity() {
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
+    }
+
+    /** All-files access lets the served "File browsing" reach the phone's real storage. */
+    private fun hasAllFilesAccess(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager()
+        else checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestAllFilesAccess() {
+        if (hasAllFilesAccess()) {
+            Toast.makeText(this, "Storage access already granted", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // API 30+: this special permission is granted from a system settings screen.
+            val ok = runCatching {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:$packageName"),
+                    ),
+                )
+            }.isSuccess
+            if (!ok) runCatching { startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+        } else {
+            requestPermissions(
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                2,
+            )
         }
     }
 
