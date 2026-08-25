@@ -139,7 +139,7 @@ class MainActivity : Activity() {
         root.addView(TextView(this).apply {
             text = "v${Servd.VERSION}"
             setTextColor(muted)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(0, dp(2), 0, 0)
             layoutParams = LinearLayout.LayoutParams(
