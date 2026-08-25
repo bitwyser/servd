@@ -155,11 +155,14 @@
   .drop small { font-family: var(--mono); color: var(--faint); }
   .flist { display: flex; flex-direction: column; gap: 8px; }
   .frow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
-  .frow .fi { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); flex-shrink: 0; }
+  .frow .fi { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .02em; }
   .frow .fmeta { flex: 1; min-width: 0; }
   .frow .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .frow .fsub { font-family: var(--mono); font-size: 11px; color: var(--faint); }
   .frow .fsize { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .frow.uploading { border-style: dashed; }
+  .uprog { margin-top: 5px; height: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+  .upbar { height: 100%; background: var(--accent); border-radius: 3px; transition: width .12s ease; }
   .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); cursor: pointer; text-decoration: none; }
   .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
   .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 10px; }
@@ -369,6 +372,7 @@
   setTitle();
   let selfId=null, ws=null, retry=null, lastConnected=0;
   const files = new Map();
+  const uploads = new Map(); let upSeq = 0; // in-flight uploads: id -> {name,size,loaded,xhr}
 
   // theme
   (function(){ const t=localStorage.getItem("servd-theme"); if(t) document.documentElement.setAttribute("data-theme",t); })();
@@ -451,9 +455,19 @@
   // ---- files ----
   function renderFiles(){
     const items=[...files.values()].sort((a,b)=>b.ts-a.ts);
+    const ups=[...uploads.entries()];
     fbadge.style.display = items.length ? "" : "none"; fbadge.textContent=items.length;
-    if(!items.length){ flist.innerHTML='<div class="files-empty">No files shared yet.</div>'; return; }
+    if(!items.length && !ups.length){ flist.innerHTML='<div class="files-empty">No files shared yet.</div>'; return; }
     flist.innerHTML="";
+    for(const [id,u] of ups){
+      const pct=u.size?Math.min(100,Math.round(u.loaded/u.size*100)):0;
+      const row=document.createElement("div"); row.className="frow uploading"; row.dataset.up=id;
+      row.innerHTML='<span class="fi">'+esc(ext(u.name))+'</span>'+
+        '<div class="fmeta"><div class="fname">'+esc(u.name)+'</div><div class="fsub upsub">uploading&hellip; '+pct+'%</div><div class="uprog"><div class="upbar" style="width:'+pct+'%"></div></div></div>'+
+        '<span class="fsize upsize">'+fmtSize(u.loaded)+' / '+fmtSize(u.size)+'</span>'+
+        '<button class="dl del" data-cancel="'+id+'" title="Cancel upload">'+XICON+'</button>';
+      flist.appendChild(row);
+    }
     for(const f of items){
       const row=document.createElement("div"); row.className="frow";
       row.innerHTML='<span class="fi">'+esc(ext(f.name))+'</span>'+
@@ -466,10 +480,35 @@
     flist.querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{
       if(confirm('Delete this file for everyone?')) fetch('/files/'+encodeURIComponent(b.dataset.del),{method:'DELETE'}).catch(()=>{});
     }));
+    flist.querySelectorAll('button[data-cancel]').forEach(b=>b.addEventListener('click',()=>{ const u=uploads.get(b.dataset.cancel); if(u&&u.xhr) u.xhr.abort(); }));
+  }
+  function updateUpRow(id){
+    const u=uploads.get(id); if(!u) return;
+    const row=flist.querySelector('[data-up="'+id+'"]'); if(!row) return;
+    const pct=u.size?Math.min(100,Math.round(u.loaded/u.size*100)):0;
+    const bar=row.querySelector('.upbar'); if(bar) bar.style.width=pct+'%';
+    const sub=row.querySelector('.upsub'); if(sub) sub.textContent='uploading… '+pct+'%';
+    const sz=row.querySelector('.upsize'); if(sz) sz.textContent=fmtSize(u.loaded)+' / '+fmtSize(u.size);
   }
   function addFile(f, announce){ const isNew=!files.has(f.id); files.set(f.id,f); renderFiles(); if(isNew&&announce) addFileMsg(f); }
   function loadFiles(){ fetch("/files").then(r=>r.json()).then(list=>{ list.forEach(f=>files.set(f.id,f)); renderFiles(); }).catch(()=>{}); }
-  function upload(fileList){ for(const file of fileList){ const fd=new FormData(); fd.append("from",userName); fd.append("file",file,file.name); fetch("/files",{method:"POST",body:fd}).then(r=>{ if(!r.ok) addSys("upload failed: "+file.name); }).catch(()=>addSys("upload failed: "+file.name)); } }
+  function upload(fileList){
+    for(const file of fileList){
+      const id="up-"+(upSeq++);
+      const xhr=new XMLHttpRequest();
+      uploads.set(id,{name:file.name,size:file.size,loaded:0,xhr});
+      renderFiles();
+      xhr.upload.addEventListener("progress",e=>{ const u=uploads.get(id); if(u){ u.loaded=e.loaded; updateUpRow(id); } });
+      xhr.addEventListener("load",()=>{
+        if(!(xhr.status>=200&&xhr.status<300)) addSys("upload failed: "+file.name);
+        uploads.delete(id); renderFiles(); // the shared file itself arrives via the /ws announce
+      });
+      xhr.addEventListener("error",()=>{ addSys("upload failed: "+file.name); uploads.delete(id); renderFiles(); });
+      xhr.addEventListener("abort",()=>{ uploads.delete(id); renderFiles(); });
+      const fd=new FormData(); fd.append("from",userName); fd.append("file",file,file.name);
+      xhr.open("POST","/files"); xhr.send(fd);
+    }
+  }
 
   ["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over");}));
   ["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over");}));
