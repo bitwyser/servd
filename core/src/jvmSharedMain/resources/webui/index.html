@@ -58,6 +58,8 @@
   .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 7px 16px; box-shadow: var(--shadow-sm); }
   .brand { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
   .brand .prompt { color: var(--accent); }
+  .brand .ver { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin: 0 -3px 0 -4px; }
+  .brand .ver:empty { display: none; }
   .cursor { width: 8px; height: 16px; background: var(--accent); display: inline-block; border-radius: 1px; animation: blink 1.15s steps(1) infinite; transform: translateY(2px); }
   @keyframes blink { 50% { opacity: 0; } }
   .status-pill { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; padding: 4px 11px; }
@@ -279,7 +281,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="prompt">~/</span>servd<span class="cursor" aria-hidden="true"></span></div>
+      <div class="brand"><span class="prompt">~/</span>servd<span class="ver" id="brandVer"></span><span class="cursor" aria-hidden="true"></span></div>
       <span class="status-pill" id="statusPill"><span class="dot" id="dot"></span><span id="statusText">connecting...</span></span>
       <span class="uptime" id="uptime"></span>
       <span class="spacer"></span>
@@ -465,6 +467,7 @@
   function loadStatus(){
     fetch("/status").then(r=>r.json()).then(s => {
       $("hostUrl").textContent = location.protocol + "//" + s.address + ":" + s.port;
+      if(s.version) $("brandVer").textContent = "v"+s.version;
       syncNameWidth();
       $("uptime").textContent = fmtUptime(s.uptimeMs);
       lastConnected = s.connected;
