@@ -358,18 +358,6 @@
 
       <!-- right rail: host + servers (host machine only) -->
       <aside class="rail" id="rail" aria-label="Host and servers" hidden>
-        <section class="panel host-card">
-          <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
-          <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
-          <div class="kv">
-            <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
-            <div class="fingerprint"><span class="v" id="admFp">-</span>
-              <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-              </button>
-            </div>
-          </div>
-        </section>
         <section class="panel adm-browse">
           <div class="panel-head"><span class="panel-title">File browsing</span></div>
           <div class="adm-browse-body">
@@ -395,6 +383,18 @@
           <div class="rail-note">
             <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
             Server toggles are visible on the host only - this panel is served on 127.0.0.1.
+          </div>
+        </section>
+        <section class="panel host-card">
+          <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
+          <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
+          <div class="kv">
+            <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
+            <div class="fingerprint"><span class="v" id="admFp">-</span>
+              <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              </button>
+            </div>
           </div>
         </section>
       </aside>
