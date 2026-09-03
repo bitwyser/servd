@@ -3,6 +3,6 @@ package dev.servd.core
 /** Shared metadata for the servd core. */
 object Servd {
     const val NAME = "servd"
-    const val VERSION = "1.2.1"
+    const val VERSION = "1.2.2"
     const val TAGLINE = "local-network server tool"
 }
