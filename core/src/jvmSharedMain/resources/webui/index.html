@@ -87,7 +87,7 @@
   .status-pill, .host-chip, .namebox input { height: 32px; }
 
   /* ---------- grid ---------- */
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 7px; }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 7px; }
   .grid > * { min-width: 0; min-height: 0; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
   .panel-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -133,6 +133,12 @@
   /* config views (sharing / live site / servers): a scrollable, readable-width column */
   .cfg-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
   .cfg { max-width: 560px; display: flex; flex-direction: column; gap: 12px; }
+  /* sharing tab = browse (left) + sharing config (right) */
+  .share-split { flex: 1; min-height: 0; display: flex; }
+  .share-browse { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  .share-browse .brlist { flex: 1; min-height: 0; overflow-y: auto; }
+  .share-config { flex: 0 0 320px; min-height: 0; overflow-y: auto; border-left: 1px solid var(--border); }
+  .share-config .cfg-wrap { padding: 14px; } .share-config .cfg { max-width: none; }
 
   /* chat */
   .chat-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
@@ -182,8 +188,7 @@
   .dl { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); cursor: pointer; text-decoration: none; }
   .dl:hover { color: var(--accent-ink); border-color: var(--accent); }
   .files-empty { font-family: var(--mono); font-size: 12px; color: var(--faint); text-align: center; padding: 10px; }
-  /* browse tab */
-  .browse-wrap { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  /* browse pane (inside the sharing tab) */
   .browse-bar { display: flex; align-items: center; gap: 8px; }
   .brpath { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brlist { overflow-y: auto; min-height: 0; }
@@ -271,6 +276,10 @@
     .col-left { display: contents; }
     .tabs { flex-wrap: wrap; }
     .cfg-wrap { padding: 12px; }
+    /* sharing: config on top, browse below */
+    .share-split { flex-direction: column-reverse; }
+    .share-config { flex: 0 0 auto; border-left: 0; border-bottom: 1px solid var(--border); }
+    .share-browse { min-height: 45vh; }
     .devices .panel-head { border-bottom: 0; padding-bottom: 4px; }
     #roster { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 12px; }
     .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; gap: 7px; }
@@ -306,8 +315,16 @@
     </header>
 
     <div class="grid no-rail" id="grid">
-      <!-- left column: host info (host only) above the devices roster -->
+      <!-- left column: devices roster on top, host info (host only) below -->
       <div class="col-left">
+        <section class="panel devices" aria-label="Connected devices">
+          <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
+          <div id="roster"><div class="dev-empty">No devices yet.</div></div>
+          <div class="dev-qr">
+            <span class="k">Scan to join</span>
+            <img class="qr" id="qr" alt="Scan to open the hub on another device" width="140" height="140" />
+          </div>
+        </section>
         <section class="panel host-card" id="hostCard" aria-label="This host" hidden>
           <div class="panel-head"><span class="panel-title">This host</span></div>
           <div class="host-card-body">
@@ -323,14 +340,6 @@
             </div>
           </div>
         </section>
-        <section class="panel devices" aria-label="Connected devices">
-          <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
-          <div id="roster"><div class="dev-empty">No devices yet.</div></div>
-          <div class="dev-qr">
-            <span class="k">Scan to join</span>
-            <img class="qr" id="qr" alt="Scan to open the hub on another device" width="140" height="140" />
-          </div>
-        </section>
       </div>
 
       <!-- center: chat / files -->
@@ -338,8 +347,7 @@
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" aria-selected="true" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-view="chat">chat</button>
-          <button class="tab" role="tab" aria-selected="false" data-view="browse" id="browseTab" style="display:none">browse</button>
-          <button class="tab host-tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>sharing</button>
+          <button class="tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>sharing</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>live site</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="servers" id="serversTab" hidden><span class="tdot" id="serversDot"></span>servers</button>
           <span class="tab-spacer"></span>
@@ -371,37 +379,38 @@
           </div>
         </div>
 
-        <div class="view" id="view-browse" role="tabpanel">
-          <div class="browse-wrap">
-            <div class="browse-bar">
-              <span class="nav-btns"><button class="mini-btn" id="brRoot" type="button" title="Root folder">root</button><button class="mini-btn" id="brUp" type="button" title="Up one level">up</button></span>
-              <span class="brpath" id="brPath">/</span>
-              <button type="button" class="icon-btn" id="brAttach" title="Upload to this folder" style="display:none">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
-              </button>
-              <input type="file" id="brFileInput" multiple hidden />
-            </div>
-            <div class="brlist flist" id="brList"><div class="files-empty">Loading&hellip;</div></div>
-          </div>
-        </div>
-
         <div class="view" id="view-sharing" role="tabpanel">
-          <div class="cfg-wrap"><div class="cfg">
-            <div class="br-status" id="brStatus">Off - clients cannot browse your files.</div>
-            <div class="br-picker" id="brPicker">
-              <div class="br-pick-bar"><span class="nav-btns"><button class="mini-btn" id="brPickRoot" type="button">root</button><button class="mini-btn" id="brPickUp" type="button">up</button></span><span class="brpath" id="brPickPath">-</span></div>
-              <div class="br-pick-list" id="brPickList"></div>
-              <label class="br-write"><input type="checkbox" id="brWrite" /> allow uploads (writable)</label>
+          <div class="share-split">
+            <div class="share-browse">
+              <div class="browse-bar">
+                <span class="nav-btns"><button class="mini-btn" id="brRoot" type="button" title="Root folder">root</button><button class="mini-btn" id="brUp" type="button" title="Up one level">up</button></span>
+                <span class="brpath" id="brPath">/</span>
+                <button type="button" class="icon-btn" id="brAttach" title="Upload to this folder" style="display:none">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
+                </button>
+                <input type="file" id="brFileInput" multiple hidden />
+              </div>
+              <div class="brlist flist" id="brList"><div class="files-empty">Nothing shared yet.</div></div>
             </div>
-            <div class="br-actions">
-              <button class="mini-btn" id="brShare" type="button">share this folder</button>
-              <button class="mini-btn" id="brStop" type="button" hidden>stop sharing</button>
+            <div class="share-config" id="shareConfig">
+              <div class="cfg-wrap"><div class="cfg">
+                <div class="br-status" id="brStatus">Off - clients cannot browse your files.</div>
+                <div class="br-picker" id="brPicker">
+                  <div class="br-pick-bar"><span class="nav-btns"><button class="mini-btn" id="brPickRoot" type="button">root</button><button class="mini-btn" id="brPickUp" type="button">up</button></span><span class="brpath" id="brPickPath">-</span></div>
+                  <div class="br-pick-list" id="brPickList"></div>
+                  <label class="br-write"><input type="checkbox" id="brWrite" /> allow uploads (writable)</label>
+                </div>
+                <div class="br-actions">
+                  <button class="mini-btn" id="brShare" type="button">share this folder</button>
+                  <button class="mini-btn" id="brStop" type="button" hidden>stop sharing</button>
+                </div>
+                <div class="rail-note">
+                  <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                  Exposes the chosen folder to everyone on the network (no login). Off by default.
+                </div>
+              </div></div>
             </div>
-            <div class="rail-note">
-              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-              Exposes the chosen folder to everyone on the network (no login). Off by default.
-            </div>
-          </div></div>
+          </div>
         </div>
 
         <div class="view" id="view-live" role="tabpanel">
@@ -637,15 +646,25 @@
       fetch("/admin/services/"+encodeURIComponent(cb.dataset.id)+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
     }));
   }
-  function showHostTabs(show){
-    ["sharingTab","liveTab","serversTab"].forEach(id=>$(id).hidden=!show);
-    // if a host-only tab was active when it disappears, fall back to files
-    if(!show && ["sharing","live","servers"].includes(activeView())) document.querySelector('.tab[data-view="files"]').click();
+  let hostMode=false, brEnabled=false;
+  // The "sharing" tab shows for the host (to configure) OR any client once a folder is shared
+  // (to browse). Its config pane is host-only.
+  function updateSharingTab(){
+    const showTab = hostMode || brEnabled;
+    $("sharingTab").hidden = !showTab;
+    $("shareConfig").hidden = !hostMode;
+    if(!showTab && activeView()==="sharing") document.querySelector('.tab[data-view="files"]').click();
+  }
+  function applyHostMode(host){
+    hostMode = host;
+    $("liveTab").hidden = !host; $("serversTab").hidden = !host;
+    updateSharingTab();
+    if(!host && ["live","servers"].includes(activeView())) document.querySelector('.tab[data-view="files"]').click();
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("hostCard").hidden=false; showHostTabs(true); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
-      .catch(()=>{ $("hostCard").hidden=true; showHostTabs(false); });
+      .then(list=>{ $("hostCard").hidden=false; applyHostMode(true); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
+      .catch(()=>{ $("hostCard").hidden=true; applyHostMode(false); });
   }
 
   // ---- browse: a host-served directory (list / download / traverse / upload) ----
@@ -653,11 +672,18 @@
   let brCur=""; let brWritable=false;
   function loadBrowseInfo(){
     fetch("/fs/info").then(r=>r.json()).then(info=>{
-      $("browseTab").style.display = info.enabled ? "" : "none";
+      const was = brEnabled; brEnabled = !!info.enabled;
       brWritable = !!info.writable;
       $("brAttach").style.display = info.writable ? "" : "none";
-      if(!info.enabled && activeView()==="browse") document.querySelector('.tab[data-view="files"]').click();
+      updateSharingTab();
+      // if we're viewing the shared folder and it just turned on/off, refresh the browse pane
+      if(activeView()==="sharing" && brEnabled !== was) showBrowsePane();
     }).catch(()=>{});
+  }
+  // Render the left (browse) pane of the sharing tab: the shared folder, or a hint when off.
+  function showBrowsePane(){
+    if(brEnabled) openBrowse(brCur);
+    else $("brList").innerHTML='<div class="files-empty">Nothing shared yet'+(hostMode?' - pick a folder on the right to start.':'.')+'</div>';
   }
   function openBrowse(path){
     brCur = path||"";
@@ -769,7 +795,7 @@
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     $("view-"+tab.dataset.view).classList.add("active");
     updateClearBtn();
-    if(tab.dataset.view==="browse") openBrowse(brCur);
+    if(tab.dataset.view==="sharing") showBrowsePane();
   }));
   function activeView(){ return document.querySelector('.tab[aria-selected="true"]').dataset.view; }
   function updateClearBtn(){ const v=activeView(); $("clearBtn").style.display = (v==="files"||v==="chat") ? "" : "none"; $("clearBtn").textContent = v==="files" ? "clear files" : "clear chat"; }
