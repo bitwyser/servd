@@ -205,7 +205,15 @@
   .rail { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 0; }
   .rail[hidden] { display: none; } /* class rule would otherwise override the hidden attribute */
   .svc-panel { flex: 0 0 auto; display: flex; flex-direction: column; }
-  .host-card { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .host-card-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Collapsible rail panels: the header toggles the body; state persisted in localStorage. */
+  .panel.collapsible > .panel-head { cursor: pointer; user-select: none; }
+  .panel.collapsible > .panel-head .chev { margin-left: auto; color: var(--muted); display: inline-flex; transition: transform .15s ease; }
+  .panel.collapsible:not(.collapsed) > .panel-head .chev { transform: rotate(90deg); }
+  .panel.collapsible.collapsed > .panel-head { border-bottom: 0; }
+  .panel.collapsible.collapsed > :not(.panel-head) { display: none !important; }
+  .panel-state { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
   .kv { display: flex; flex-direction: column; gap: 3px; }
   .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
   .k-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -364,8 +372,8 @@
 
       <!-- right rail: host + servers (host machine only) -->
       <aside class="rail" id="rail" aria-label="Host and servers" hidden>
-        <section class="panel adm-browse">
-          <div class="panel-head"><span class="panel-title">File browsing</span></div>
+        <section class="panel adm-browse collapsible" data-panel="browse">
+          <div class="panel-head"><span class="panel-title">File browsing</span><span class="panel-state" id="browseState"></span></div>
           <div class="adm-browse-body">
             <div class="br-status" id="brStatus">Off - clients cannot browse your files.</div>
             <div class="br-picker" id="brPicker">
@@ -383,8 +391,8 @@
             </div>
           </div>
         </section>
-        <section class="panel adm-proxy">
-          <div class="panel-head"><span class="panel-title">Live site</span></div>
+        <section class="panel adm-proxy collapsible" data-panel="proxy">
+          <div class="panel-head"><span class="panel-title">Live site</span><span class="panel-state" id="pxState"></span></div>
           <div class="adm-browse-body">
             <div class="br-status" id="pxStatus">Off - no live site is being served.</div>
             <label class="px-field"><span class="px-label">Target (your running server)</span><input id="pxTarget" type="text" spellcheck="false" autocomplete="off" placeholder="http://localhost:3000" /></label>
@@ -399,7 +407,7 @@
             </div>
           </div>
         </section>
-        <section class="panel svc-panel">
+        <section class="panel svc-panel collapsible" data-panel="servers">
           <div class="panel-head"><span class="panel-title">Servers</span></div>
           <div id="svcList"></div>
           <div class="rail-note">
@@ -407,15 +415,18 @@
             Server toggles are visible on the host only - this panel is served on 127.0.0.1.
           </div>
         </section>
-        <section class="panel host-card">
-          <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
-          <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
-          <div class="kv">
-            <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
-            <div class="fingerprint"><span class="v" id="admFp">-</span>
-              <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-              </button>
+        <section class="panel host-card collapsible" data-panel="host">
+          <div class="panel-head"><span class="panel-title">This host</span></div>
+          <div class="host-card-body">
+            <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
+            <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
+            <div class="kv">
+              <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
+              <div class="fingerprint"><span class="v" id="admFp">-</span>
+                <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -695,6 +706,7 @@
     fetch("/admin/browse").then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(c=>{
       if(c.enabled){ $("brStatus").textContent="Sharing "+c.rootPath+" ("+(c.writable?"read + upload":"read-only")+")."; $("brStop").hidden=false; }
       else { $("brStatus").textContent="Off - clients cannot browse your files."; $("brStop").hidden=true; }
+      $("browseState").textContent = c.enabled ? "on" : "off";
     }).catch(()=>{});
   }
   function loadPicker(path){
@@ -731,6 +743,7 @@
         $("pxStatus").textContent="Off - no live site is being served.";
         $("pxStop").hidden=true;
       }
+      $("pxState").textContent = c.enabled ? "serving" : "off";
     }).catch(()=>{});
   }
   $("pxShare").addEventListener("click",()=>{
@@ -742,6 +755,23 @@
   $("pxStop").addEventListener("click",()=>{
     fetch("/admin/proxy?enabled=false",{method:"POST"}).then(()=>loadAdmProxy()).catch(()=>{});
   });
+
+  // ---- collapsible rail panels (state remembered per panel; all collapsed by default) ----
+  const CHEV='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>';
+  function initCollapsible(){
+    document.querySelectorAll(".panel.collapsible").forEach(p=>{
+      const head=p.querySelector(".panel-head"); if(!head) return;
+      const chev=document.createElement("span"); chev.className="chev"; chev.setAttribute("aria-hidden","true"); chev.innerHTML=CHEV; head.appendChild(chev);
+      const key="rail.open."+p.dataset.panel;
+      let open=false; try{ open=localStorage.getItem(key)==="1"; }catch(e){}
+      p.classList.toggle("collapsed", !open);
+      head.setAttribute("role","button"); head.setAttribute("tabindex","0"); head.setAttribute("aria-expanded", String(open));
+      const toggle=()=>{ const collapsed=p.classList.toggle("collapsed"); head.setAttribute("aria-expanded", String(!collapsed)); try{ localStorage.setItem(key, collapsed?"0":"1"); }catch(e){} };
+      head.addEventListener("click",toggle);
+      head.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggle(); } });
+    });
+  }
+  initCollapsible();
 
   // ---- tabs ----
   document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{
