@@ -87,8 +87,8 @@
   .status-pill, .host-chip, .namebox input { height: 32px; }
 
   /* ---------- grid ---------- */
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 246px minmax(0, 1fr) 400px; gap: 7px; }
-  .grid.no-rail { grid-template-columns: 246px minmax(0, 1fr); }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr) 400px; gap: 7px; }
+  .grid.no-rail { grid-template-columns: 300px minmax(0, 1fr); }
   .grid > * { min-width: 0; min-height: 0; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
   .panel-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -215,7 +215,7 @@
   .panel.collapsible > .panel-head .chev { margin-left: auto; color: var(--muted); display: inline-flex; transition: transform .15s ease; }
   .panel.collapsible:not(.collapsed) > .panel-head .chev { transform: rotate(90deg); }
   .panel.collapsible.collapsed > .panel-head { border-bottom: 0; }
-  .panel.collapsible.collapsed > :not(.panel-head) { display: none !important; }
+  .panel.collapsible.collapsed > :not(.panel-head):not(.rail-note) { display: none !important; }
   .panel-state { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
   .kv { display: flex; flex-direction: column; gap: 3px; }
   .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
@@ -406,10 +406,10 @@
               <button class="mini-btn" id="brShare" type="button">share this folder</button>
               <button class="mini-btn" id="brStop" type="button" hidden>stop sharing</button>
             </div>
-            <div class="rail-note">
-              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-              Exposes the chosen folder to everyone on the network (no login). Off by default.
-            </div>
+          </div>
+          <div class="rail-note">
+            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+            Exposes the chosen folder to everyone on the network (no login). Off by default.
           </div>
         </section>
         <section class="panel adm-proxy collapsible" data-panel="proxy">
@@ -422,10 +422,10 @@
               <button class="mini-btn" id="pxShare" type="button">serve this site</button>
               <button class="mini-btn" id="pxStop" type="button" hidden>stop</button>
             </div>
-            <div class="rail-note">
-              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-              Re-serves a web app you're running (any http/https/node) to everyone on the network, over HTTPS. Off by default.
-            </div>
+          </div>
+          <div class="rail-note">
+            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+            Re-serves a web app you're running (any http/https/node) to everyone on the network, over HTTPS. Off by default.
           </div>
         </section>
         <section class="panel svc-panel collapsible" data-panel="servers">
