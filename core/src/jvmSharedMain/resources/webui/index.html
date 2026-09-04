@@ -345,10 +345,10 @@
       <!-- center: chat / files -->
       <section class="panel center" aria-label="Chat and files">
         <div class="tabs" role="tablist">
-          <button class="tab" role="tab" aria-selected="true" data-view="files"><span class="tdot" id="filesDot"></span>files<span class="badge" id="fbadge" style="display:none">0</span></button>
+          <button class="tab" role="tab" aria-selected="true" data-view="files"><span class="tdot" id="filesDot"></span>drop files<span class="badge" id="fbadge" style="display:none">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-view="chat"><span class="tdot" id="chatDot"></span>chat</button>
-          <button class="tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>sharing</button>
-          <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>live site</button>
+          <button class="tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>browse files</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>serve site</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="servers" id="serversTab" hidden><span class="tdot" id="serversDot"></span>servers</button>
           <span class="tab-spacer"></span>
           <button class="mini-btn" id="clearBtn" type="button">clear files</button>
@@ -372,7 +372,7 @@
             <label class="drop" id="drop">
               <input type="file" id="fileInput" multiple hidden />
               <span class="big"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0-5 5m5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg></span>
-              <strong>Drag files here to share</strong>
+              <strong>Drop files here to share</strong>
               <small>or click to browse - sent to every device on the hub</small>
             </label>
             <div class="flist" id="flist"><div class="files-empty">No files shared yet.</div></div>
