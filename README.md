@@ -72,6 +72,9 @@ download dependencies; a packaged build - or one you've already built - runs wit
 - **Browse a host-chosen folder** (optional) - the host can serve a real directory (read-only, or
   with uploads) that clients list, traverse, and download in a **browse** tab; off by default, set
   up from the host-only admin panel, and jailed to the chosen folder.
+- **Serve a live site** (optional) - a built-in reverse proxy re-serves a web app you're running
+  (any HTTP/HTTPS server - a Node/Vite dev server, a static host, another service) to the whole LAN
+  over servd's HTTPS, on a dedicated port. Handles WebSockets (HMR / live-reload); off by default.
 - **Scan-to-join QR** of the hub URL, so a phone joins without typing an IP.
 - **SSH/SFTP server** (optional) - credentialed SFTP jailed to the shared files, no OS shell.
 - **FTPS server** (optional) - explicit-TLS FTP, same credential, jailed to the shared files.
@@ -227,6 +230,8 @@ The runner passes servd flags straight through:
 | `--no-open` | Don't auto-open the browser | (opens) |
 | `--browse-dir PATH` | Serve this folder to clients on start (see [File browsing](#file-browsing-serve-a-host-folder)) | (off) |
 | `--browse-write` | Allow uploads into the browsed folder | read-only |
+| `--proxy-target URL` | Re-serve a running site to the LAN (see [Live site](#live-site-serve-a-running-app)) | (off) |
+| `--proxy-port N` | Port the reverse proxy listens on | `8080` |
 
 Find running hubs on the network without typing an IP:
 
@@ -259,6 +264,25 @@ to permit uploads). On **Android**, browsing the phone's storage needs **all-fil
 picker then starts at **Internal storage**. Everything served is **jailed to the chosen folder** -
 paths that try to escape it are refused.
 
+### Live site (serve a running app)
+
+Point servd at a web server you're already running and it **re-serves that app to the whole LAN**
+over its own HTTPS - a local, LAN-only tunnel. Works with any HTTP/HTTPS backend (a Node/Vite dev
+server, a static host, another service), and proxies **WebSockets** too, so dev-server HMR /
+live-reload keeps working. Off by default, host-only (loopback admin):
+
+1. Start your app however you normally do (e.g. `npm run dev` on `http://localhost:3000`).
+2. Open the dashboard on the host (`127.0.0.1`) and, in **Live site**, enter the target
+   (`http://localhost:3000`) and a port to serve on (default `8080`), then **serve this site**.
+3. Everyone opens **`https://<the-serving-address>:8080/`** - the app is served at the root, so SPA
+   routes and absolute asset paths work unchanged. **stop** turns it off; you can switch targets
+   anytime.
+
+From the CLI, start it with the hub: `--proxy-target http://localhost:3000 [--proxy-port 8080]`.
+It runs on a **dedicated port** (not the `8443` dashboard) and terminates TLS with servd's
+self-signed cert, so an http-only or localhost-only app becomes reachable - and encrypted - across
+the network.
+
 ---
 
 ## Security model
@@ -276,6 +300,9 @@ servd is built for a **trusted LAN**, and its boundaries are deliberate:
 - **File browsing** (serving a host folder) is **off by default**, configured only from the host
   (loopback admin), and **jailed to the chosen folder** - clients cannot traverse above it, and
   uploads are refused unless the host enabled them.
+- **Live site** (the reverse proxy) is **off by default** and configured only from the host
+  (loopback admin). While on, it exposes whatever app the host targeted to the LAN with no auth
+  (same trusted-LAN model), on its own port; stopping it closes that port.
 - **Transport is encrypted** end to end on the wire (HTTPS/WSS, SSH, FTPS), verified by the cert
   **fingerprint** rather than a CA. This is **transport encryption, not end-to-end**: the host
   device (the server) can see traffic, as expected for a hub.
@@ -446,7 +473,7 @@ PowerShell, `[Convert]::ToBase64String([IO.File]::ReadAllBytes("servd-release.jk
 servd/
 ├─ core/         Kotlin Multiplatform library - the engine (shared by desktop + Android)
 │   ├─ commonMain      protocol models, PeerRegistry, LAN-address selection, Service model
-│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, directory browser, QR, SSH + FTP
+│   ├─ jvmSharedMain   Ktor server, TLS, chat hub, file store, directory browser, live-site proxy, QR, SSH + FTP
 │   ├─ desktopMain     desktop-only: JmDNS discovery
 │   ├─ androidMain     Android glue
 │   └─ .../resources/webui   the served dashboard (single HTML/CSS/JS file)
@@ -485,6 +512,8 @@ provider.
   with delete/clear routes.
 - **File browsing:** `GET /fs/list` + `GET /fs/file` list and download a host-served folder, and
   `POST /fs/upload` when writable; the host configures the served root via loopback `/admin/browse*`.
+- **Live site:** a separate HTTPS listener (its own port) forwards all requests and WebSocket
+  upgrades to the host-set target; configured via loopback `/admin/proxy`.
 - **Admin:** `/admin/*` routes report and toggle services, gated to loopback.
 
 ### Deliberately out of scope
@@ -552,6 +581,7 @@ Dependency versions are pinned in [`gradle/libs.versions.toml`](gradle/libs.vers
 | Android | SDK levels | compile 35 / min 24 / target 35 | |
 | Server | Ktor | `3.0.3` | HTTP/S + WebSocket framework |
 | Server | Netty (via Ktor) | | HTTPS engine on desktop **and** Android |
+| Proxy | Ktor client (CIO) | `3.0.3` | outbound HTTP + WebSocket forwarding for the live-site proxy |
 | TLS | JSSE / PKCS12 | JDK | self-signed keystore; SHA-256 fingerprint |
 | Net | `java.net.NetworkInterface` | JDK | cross-platform LAN/hotspot address detection |
 | SSH | Apache MINA SSHD | `2.13.2` | SSH / SFTP server |

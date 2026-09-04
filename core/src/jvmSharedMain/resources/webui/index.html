@@ -194,6 +194,11 @@
   .br-pick-item:hover { background: var(--surface-2); }
   .br-pick-item.empty { color: var(--faint); cursor: default; }
   .br-write { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .px-field { display: flex; flex-direction: column; gap: 4px; }
+  .px-label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .px-field input { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; color: var(--ink); font-family: var(--mono); font-size: 12px; width: 100%; }
+  .px-field input:focus { outline: none; border-color: var(--accent); }
+  #pxStatus a { color: var(--accent); word-break: break-all; }
   .br-pick-actions, .br-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
   /* ---------- right rail ---------- */
@@ -375,6 +380,22 @@
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
               Exposes the chosen folder to everyone on the network (no login). Off by default.
+            </div>
+          </div>
+        </section>
+        <section class="panel adm-proxy">
+          <div class="panel-head"><span class="panel-title">Live site</span></div>
+          <div class="adm-browse-body">
+            <div class="br-status" id="pxStatus">Off - no live site is being served.</div>
+            <label class="px-field"><span class="px-label">Target (your running server)</span><input id="pxTarget" type="text" spellcheck="false" autocomplete="off" placeholder="http://localhost:3000" /></label>
+            <label class="px-field"><span class="px-label">Serve on port</span><input id="pxPort" type="number" min="1" max="65535" value="8080" /></label>
+            <div class="br-actions">
+              <button class="mini-btn" id="pxShare" type="button">serve this site</button>
+              <button class="mini-btn" id="pxStop" type="button" hidden>stop</button>
+            </div>
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Re-serves a web app you're running (any http/https/node) to everyone on the network, over HTTPS. Off by default.
             </div>
           </div>
         </section>
@@ -606,7 +627,7 @@
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); })
+      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
       .catch(()=>{ $("rail").hidden=true; $("grid").classList.add("no-rail"); });
   }
 
@@ -696,6 +717,30 @@
   });
   $("brStop").addEventListener("click",()=>{
     fetch("/admin/browse?enabled=false",{method:"POST"}).then(()=>{ loadAdmBrowse(); loadBrowseInfo(); }).catch(()=>{});
+  });
+
+  // ---- admin: live site (reverse proxy) ----
+  function loadAdmProxy(){
+    fetch("/admin/proxy").then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(c=>{
+      if(c.enabled){
+        $("pxStatus").innerHTML='Serving <b>'+esc(c.target)+'</b> at <a href="'+esc(c.url)+'" target="_blank" rel="noopener noreferrer">'+esc(c.url)+'</a>';
+        $("pxStop").hidden=false;
+        if(c.target) $("pxTarget").value=c.target;
+        if(c.port) $("pxPort").value=c.port;
+      } else {
+        $("pxStatus").textContent="Off - no live site is being served.";
+        $("pxStop").hidden=true;
+      }
+    }).catch(()=>{});
+  }
+  $("pxShare").addEventListener("click",()=>{
+    const t=$("pxTarget").value.trim(); const p=($("pxPort").value.trim()||"8080");
+    if(!t){ alert("Enter the address of the site you're running first, e.g. http://localhost:3000"); return; }
+    fetch("/admin/proxy?enabled=true&target="+encodeURIComponent(t)+"&port="+encodeURIComponent(p),{method:"POST"})
+      .then(r=>r.json()).then(c=>{ if(!c.enabled) alert("Couldn't start it - is that port free and the target reachable?"); loadAdmProxy(); }).catch(()=>{});
+  });
+  $("pxStop").addEventListener("click",()=>{
+    fetch("/admin/proxy?enabled=false",{method:"POST"}).then(()=>loadAdmProxy()).catch(()=>{});
   });
 
   // ---- tabs ----

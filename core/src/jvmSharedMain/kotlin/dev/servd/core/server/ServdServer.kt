@@ -2,6 +2,7 @@ package dev.servd.core.server
 
 import dev.servd.core.Servd
 import dev.servd.core.browse.Browser
+import dev.servd.core.proxy.WebProxy
 import dev.servd.core.chat.ChatHub
 import dev.servd.core.chat.ChatSend
 import dev.servd.core.chat.ClearChat
@@ -57,7 +58,7 @@ import java.io.File
  * Lives in `jvmSharedMain` so the same server logic runs on desktop now and Android later.
  */
 class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration>(
-    engineFactory: ApplicationEngineFactory<TEngine, TConfiguration>,
+    private val engineFactory: ApplicationEngineFactory<TEngine, TConfiguration>,
     /** Interface to listen on (e.g. "0.0.0.0" for all interfaces). */
     private val bindHost: String,
     /** Address shown to users / used in the dashboard URL (e.g. the LAN IP). */
@@ -78,6 +79,10 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     browseWritable: Boolean = false,
     /** Starting folders (label to path) for the host folder picker; empty = filesystem roots. */
     pickerRoots: List<Pair<String, String>> = emptyList(),
+    /** Optional initial reverse-proxy target (a host-run web app re-served to the LAN); off if null. */
+    proxyTarget: String? = null,
+    /** Dedicated port the reverse proxy listens on. */
+    proxyPort: Int = 8080,
 ) {
     val url: String get() = "https://$advertisedHost:$port"
 
@@ -87,6 +92,9 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     private val browser = Browser().also { b ->
         b.pickerRoots = pickerRoots.map { (label, path) -> Browser.PickerDir(label, path) }
         if (browseDir != null) runCatching { b.enable(browseDir, browseWritable) }
+    }
+    private val webProxy = WebProxy(engineFactory, bindHost, advertisedHost, tls).also { p ->
+        if (proxyTarget != null) runCatching { p.enable(proxyTarget, proxyPort) }
     }
     private val serviceManager = ServiceManager(listOf(HttpService(port)) + extraServices)
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
@@ -118,6 +126,7 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
     }
 
     fun stop() {
+        runCatching { webProxy.disable() }
         engine.stop(gracePeriodMillis = 300, timeoutMillis = 1500)
     }
 
@@ -289,6 +298,26 @@ class ServdServer<TEngine : ApplicationEngine, TConfiguration : ApplicationEngin
                 call.respondText(
                     json.encodeToString(browser.serverDirs(call.request.queryParameters["path"])),
                     ContentType.Application.Json,
+                )
+            }
+            // Reverse proxy (re-serve a host-run web app to the LAN), host-only.
+            get("/admin/proxy") {
+                if (!call.isLoopbackClient()) return@get call.respond(HttpStatusCode.Forbidden)
+                call.respondText(json.encodeToString(webProxy.config()), ContentType.Application.Json)
+            }
+            post("/admin/proxy") {
+                if (!call.isLoopbackClient()) return@post call.respond(HttpStatusCode.Forbidden)
+                val p = call.request.queryParameters
+                val enable = p["enabled"]?.toBoolean() ?: false
+                val target = p["target"]
+                val proxyPort = p["port"]?.toIntOrNull() ?: 8080
+                val ok = runCatching {
+                    if (enable && !target.isNullOrBlank()) webProxy.enable(target, proxyPort) else webProxy.disable()
+                }.isSuccess
+                call.respondText(
+                    json.encodeToString(webProxy.config()),
+                    ContentType.Application.Json,
+                    status = if (ok) HttpStatusCode.OK else HttpStatusCode.BadRequest,
                 )
             }
             get("/admin/services") {

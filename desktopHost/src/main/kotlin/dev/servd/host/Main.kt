@@ -19,6 +19,8 @@ import java.net.URI
  * servd desktop entrypoint.
  *
  *   servd [start] [--port N] [--host IP] [--dir PATH] [--no-open]   start the hub
+ *       [--browse-dir PATH [--browse-write]]                        also serve a folder to clients
+ *       [--proxy-target URL [--proxy-port N]]                       also re-serve a live web app
  *   servd discover                                                  find hubs on the network
  */
 fun main(args: Array<String>) {
@@ -73,6 +75,8 @@ fun main(args: Array<String>) {
         interfaceName = lan?.interfaceName,
         browseDir = opts.browseDir,
         browseWritable = opts.browseWrite,
+        proxyTarget = opts.proxyTarget,
+        proxyPort = opts.proxyPort,
     )
 
     // When bound to all interfaces, the host reaches admin via loopback; a specific --host
@@ -84,6 +88,9 @@ fun main(args: Array<String>) {
         println("admin   : https://127.0.0.1:${opts.port}   (this machine only)")
     }
     println("serving : ${server.url}   (share with other devices)")
+    if (opts.proxyTarget != null) {
+        println("proxy   : https://$advertisedHost:${opts.proxyPort}   ->  ${opts.proxyTarget}   (live site)")
+    }
     println("cert    : self-signed, SHA-256 fingerprint:")
     println("          ${tls.fingerprintSha256}")
     println("keystore: ${tls.file}")
@@ -151,6 +158,8 @@ private data class Opts(
     val noOpen: Boolean = false,
     val browseDir: String? = null,
     val browseWrite: Boolean = false,
+    val proxyTarget: String? = null,
+    val proxyPort: Int = 8080,
 ) {
     companion object {
         fun parse(args: Array<String>): Opts {
@@ -160,6 +169,8 @@ private data class Opts(
             var noOpen = false
             var browseDir: String? = null
             var browseWrite = false
+            var proxyTarget: String? = null
+            var proxyPort = 8080
             var i = 0
             while (i < args.size) {
                 when (args[i]) {
@@ -170,10 +181,12 @@ private data class Opts(
                     "--no-open" -> noOpen = true
                     "--browse-dir" -> browseDir = args.getOrNull(++i)
                     "--browse-write" -> browseWrite = true
+                    "--proxy-target" -> proxyTarget = args.getOrNull(++i)
+                    "--proxy-port" -> proxyPort = args.getOrNull(++i)?.toIntOrNull() ?: proxyPort
                 }
                 i++
             }
-            return Opts(port, host, dir, noOpen, browseDir, browseWrite)
+            return Opts(port, host, dir, noOpen, browseDir, browseWrite, proxyTarget, proxyPort)
         }
     }
 }

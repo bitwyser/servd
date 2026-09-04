@@ -41,6 +41,11 @@ kotlin {
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.network.tls.certificates)
+                // Ktor client (CIO engine) - outbound HTTP + WebSocket forwarding for the
+                // reverse proxy that re-serves a host-run web app to the LAN.
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.cio)
+                implementation(libs.ktor.client.websockets)
                 implementation(libs.zxing.core)
                 // SSH/SFTP (Apache MINA SSHD) and FTP/FTPS (Apache FtpServer) - both host on
                 // desktop AND Android (a phone is a full hub), so they live in the shared set.
