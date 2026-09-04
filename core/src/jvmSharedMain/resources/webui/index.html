@@ -345,8 +345,8 @@
       <!-- center: chat / files -->
       <section class="panel center" aria-label="Chat and files">
         <div class="tabs" role="tablist">
-          <button class="tab" role="tab" aria-selected="true" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
-          <button class="tab" role="tab" aria-selected="false" data-view="chat">chat</button>
+          <button class="tab" role="tab" aria-selected="true" data-view="files"><span class="tdot" id="filesDot"></span>files<span class="badge" id="fbadge" style="display:none">0</span></button>
+          <button class="tab" role="tab" aria-selected="false" data-view="chat"><span class="tdot" id="chatDot"></span>chat</button>
           <button class="tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>sharing</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>live site</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="servers" id="serversTab" hidden><span class="tdot" id="serversDot"></span>servers</button>
@@ -493,6 +493,7 @@
     statusPill.classList.toggle("down", !on);
     statusText.textContent = on ? "daemon running" : "reconnecting...";
     sendBtn.disabled = !on;
+    $("chatDot").classList.toggle("on", on);
   }
 
   // ---- status / host card ----
@@ -562,6 +563,7 @@
     const items=[...files.values()].sort((a,b)=>b.ts-a.ts);
     const ups=[...uploads.entries()];
     fbadge.style.display = items.length ? "" : "none"; fbadge.textContent=items.length;
+    $("filesDot").classList.toggle("on", items.length>0);
     if(!items.length && !ups.length){ flist.innerHTML='<div class="files-empty">No files shared yet.</div>'; return; }
     flist.innerHTML="";
     for(const [id,u] of ups){
