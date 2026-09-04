@@ -98,6 +98,9 @@
   .count { color: var(--accent-ink); background: var(--accent-soft); }
 
   /* ---------- devices ---------- */
+  .col-left { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
+  .col-left .host-card { flex: 0 0 auto; }
+  .col-left .devices { flex: 1 1 auto; min-height: 0; }
   .devices { display: flex; flex-direction: column; }
   #roster { flex: 1; overflow-y: auto; min-height: 0; }
   .dev { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
@@ -275,6 +278,7 @@
     .namebox input { flex: 1; width: auto; }
     .host-chip { order: 7; flex: 1 1 100%; justify-content: flex-start; }
     /* devices become a compact horizontal strip so chat/files get the vertical space */
+    .col-left { display: contents; }
     .devices .panel-head { border-bottom: 0; padding-bottom: 4px; }
     #roster { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 12px; }
     .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; gap: 7px; }
@@ -310,15 +314,32 @@
     </header>
 
     <div class="grid no-rail" id="grid">
-      <!-- devices -->
-      <section class="panel devices" aria-label="Connected devices">
-        <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
-        <div id="roster"><div class="dev-empty">No devices yet.</div></div>
-        <div class="dev-qr">
-          <span class="k">Scan to join</span>
-          <img class="qr" id="qr" alt="Scan to open the hub on another device" width="140" height="140" />
-        </div>
-      </section>
+      <!-- left column: host info (host only) above the devices roster -->
+      <div class="col-left">
+        <section class="panel host-card" id="hostCard" aria-label="This host" hidden>
+          <div class="panel-head"><span class="panel-title">This host</span></div>
+          <div class="host-card-body">
+            <div class="kv"><span class="k">Host name</span><span class="v" id="admHost">-</span></div>
+            <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
+            <div class="kv">
+              <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
+              <div class="fingerprint"><span class="v" id="admFp">-</span>
+                <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="panel devices" aria-label="Connected devices">
+          <div class="panel-head"><span class="panel-title">Devices</span><span class="count" id="count">0</span></div>
+          <div id="roster"><div class="dev-empty">No devices yet.</div></div>
+          <div class="dev-qr">
+            <span class="k">Scan to join</span>
+            <img class="qr" id="qr" alt="Scan to open the hub on another device" width="140" height="140" />
+          </div>
+        </section>
+      </div>
 
       <!-- center: chat / files -->
       <section class="panel center" aria-label="Chat and files">
@@ -413,21 +434,6 @@
           <div class="rail-note">
             <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
             Server toggles are visible on the host only - this panel is served on 127.0.0.1.
-          </div>
-        </section>
-        <section class="panel host-card collapsible" data-panel="host">
-          <div class="panel-head"><span class="panel-title">This host</span></div>
-          <div class="host-card-body">
-            <div class="kv"><span class="k">This host</span><span class="v" id="admHost">-</span></div>
-            <div class="kv"><span class="k">Bound interface</span><span class="v" id="admIface">-</span></div>
-            <div class="kv">
-              <div class="k-row"><span class="k">TLS fingerprint (SHA-256)</span><span class="chip-warn" title="Self-signed certificate - verify this fingerprint">self-signed</span></div>
-              <div class="fingerprint"><span class="v" id="admFp">-</span>
-                <button class="copy" id="copyfp" aria-label="Copy fingerprint" title="Copy fingerprint">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-                </button>
-              </div>
-            </div>
           </div>
         </section>
       </aside>
@@ -638,8 +644,8 @@
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("rail").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
-      .catch(()=>{ $("rail").hidden=true; $("grid").classList.add("no-rail"); });
+      .then(list=>{ $("rail").hidden=false; $("hostCard").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
+      .catch(()=>{ $("rail").hidden=true; $("hostCard").hidden=true; $("grid").classList.add("no-rail"); });
   }
 
   // ---- browse: a host-served directory (list / download / traverse / upload) ----
