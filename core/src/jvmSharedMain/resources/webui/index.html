@@ -87,8 +87,7 @@
   .status-pill, .host-chip, .namebox input { height: 32px; }
 
   /* ---------- grid ---------- */
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr) 400px; gap: 7px; }
-  .grid.no-rail { grid-template-columns: 300px minmax(0, 1fr); }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 7px; }
   .grid > * { min-width: 0; min-height: 0; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow-sm); }
   .panel-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -128,6 +127,12 @@
   .tab .badge { color: var(--accent-ink); background: var(--accent-soft); margin-left: 6px; }
   .view { display: none; flex: 1; flex-direction: column; min-height: 0; }
   .view.active { display: flex; }
+  /* host-only config tabs carry a small status dot (green = active) */
+  .tdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--faint); transition: background .15s; }
+  .tdot.on { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  /* config views (sharing / live site / servers): a scrollable, readable-width column */
+  .cfg-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
+  .cfg { max-width: 560px; display: flex; flex-direction: column; gap: 12px; }
 
   /* chat */
   .chat-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 14px; }
@@ -184,8 +189,7 @@
   .brlist { overflow-y: auto; min-height: 0; }
   .frow.dir { cursor: pointer; }
   .frow.dir:hover { border-color: var(--accent); }
-  /* admin: file browsing */
-  .adm-browse-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  /* admin: file browsing / live site / servers (shown as center tabs) */
   .br-status { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.5; word-break: break-all; }
   .br-picker { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px; display: flex; flex-direction: column; gap: 8px; }
   .br-pick-bar { display: flex; align-items: center; gap: 8px; }
@@ -204,19 +208,8 @@
   #pxStatus a { color: var(--accent); word-break: break-all; }
   .br-pick-actions, .br-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-  /* ---------- right rail ---------- */
-  .rail { display: flex; flex-direction: column; gap: 7px; overflow-y: auto; min-height: 0; }
-  .rail[hidden] { display: none; } /* class rule would otherwise override the hidden attribute */
-  .svc-panel { flex: 0 0 auto; display: flex; flex-direction: column; }
+  /* ---------- host card (left column) ---------- */
   .host-card-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-
-  /* Collapsible rail panels: the header toggles the body; state persisted in localStorage. */
-  .panel.collapsible > .panel-head { cursor: pointer; user-select: none; }
-  .panel.collapsible > .panel-head .chev { margin-left: auto; color: var(--muted); display: inline-flex; transition: transform .15s ease; }
-  .panel.collapsible:not(.collapsed) > .panel-head .chev { transform: rotate(90deg); }
-  .panel.collapsible.collapsed > .panel-head { border-bottom: 0; }
-  .panel.collapsible.collapsed > :not(.panel-head):not(.rail-note) { display: none !important; }
-  .panel-state { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
   .kv { display: flex; flex-direction: column; gap: 3px; }
   .k { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
   .k-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -258,9 +251,6 @@
     .app { height: auto; min-height: 100dvh; }
     .grid, .grid.no-rail { grid-template-columns: 1fr; }
     .center { min-height: 60vh; }
-    .rail { overflow: visible; }
-    .svc-panel { flex: none; }
-    .svc-panel #svcList { overflow-y: visible; }
   }
   @media (max-width: 700px) {
     .app { padding: 12px 7px; gap: 12px; }
@@ -279,6 +269,8 @@
     .host-chip { order: 7; flex: 1 1 100%; justify-content: flex-start; }
     /* devices become a compact horizontal strip so chat/files get the vertical space */
     .col-left { display: contents; }
+    .tabs { flex-wrap: wrap; }
+    .cfg-wrap { padding: 12px; }
     .devices .panel-head { border-bottom: 0; padding-bottom: 4px; }
     #roster { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 12px 12px; }
     .dev { flex: 0 0 auto; border-bottom: 0; border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; gap: 7px; }
@@ -347,6 +339,9 @@
           <button class="tab" role="tab" aria-selected="true" data-view="files">files<span class="badge" id="fbadge" style="display:none">0</span></button>
           <button class="tab" role="tab" aria-selected="false" data-view="chat">chat</button>
           <button class="tab" role="tab" aria-selected="false" data-view="browse" id="browseTab" style="display:none">browse</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>sharing</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>live site</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="servers" id="serversTab" hidden><span class="tdot" id="serversDot"></span>servers</button>
           <span class="tab-spacer"></span>
           <button class="mini-btn" id="clearBtn" type="button">clear files</button>
         </div>
@@ -389,13 +384,9 @@
             <div class="brlist flist" id="brList"><div class="files-empty">Loading&hellip;</div></div>
           </div>
         </div>
-      </section>
 
-      <!-- right rail: host + servers (host machine only) -->
-      <aside class="rail" id="rail" aria-label="Host and servers" hidden>
-        <section class="panel adm-browse collapsible" data-panel="browse">
-          <div class="panel-head"><span class="panel-title">File browsing</span><span class="panel-state" id="browseState"></span></div>
-          <div class="adm-browse-body">
+        <div class="view" id="view-sharing" role="tabpanel">
+          <div class="cfg-wrap"><div class="cfg">
             <div class="br-status" id="brStatus">Off - clients cannot browse your files.</div>
             <div class="br-picker" id="brPicker">
               <div class="br-pick-bar"><span class="nav-btns"><button class="mini-btn" id="brPickRoot" type="button">root</button><button class="mini-btn" id="brPickUp" type="button">up</button></span><span class="brpath" id="brPickPath">-</span></div>
@@ -406,15 +397,15 @@
               <button class="mini-btn" id="brShare" type="button">share this folder</button>
               <button class="mini-btn" id="brStop" type="button" hidden>stop sharing</button>
             </div>
-          </div>
-          <div class="rail-note">
-            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-            Exposes the chosen folder to everyone on the network (no login). Off by default.
-          </div>
-        </section>
-        <section class="panel adm-proxy collapsible" data-panel="proxy">
-          <div class="panel-head"><span class="panel-title">Live site</span><span class="panel-state" id="pxState"></span></div>
-          <div class="adm-browse-body">
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Exposes the chosen folder to everyone on the network (no login). Off by default.
+            </div>
+          </div></div>
+        </div>
+
+        <div class="view" id="view-live" role="tabpanel">
+          <div class="cfg-wrap"><div class="cfg">
             <div class="br-status" id="pxStatus">Off - no live site is being served.</div>
             <label class="px-field"><span class="px-label">Target (your running server)</span><input id="pxTarget" type="text" spellcheck="false" autocomplete="off" placeholder="http://localhost:3000" /></label>
             <label class="px-field"><span class="px-label">Serve on port</span><input id="pxPort" type="number" min="1" max="65535" value="8080" /></label>
@@ -422,21 +413,24 @@
               <button class="mini-btn" id="pxShare" type="button">serve this site</button>
               <button class="mini-btn" id="pxStop" type="button" hidden>stop</button>
             </div>
-          </div>
-          <div class="rail-note">
-            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-            Re-serves a web app you're running (any http/https/node) to everyone on the network, over HTTPS. Off by default.
-          </div>
-        </section>
-        <section class="panel svc-panel collapsible" data-panel="servers">
-          <div class="panel-head"><span class="panel-title">Servers</span></div>
-          <div id="svcList"></div>
-          <div class="rail-note">
-            <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-            Server toggles are visible on the host only - this panel is served on 127.0.0.1.
-          </div>
-        </section>
-      </aside>
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Re-serves a web app you're running (any http/https/node) to everyone on the network, over HTTPS. Off by default.
+            </div>
+          </div></div>
+        </div>
+
+        <div class="view" id="view-servers" role="tabpanel">
+          <div class="cfg-wrap"><div class="cfg">
+            <div id="svcList"></div>
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Server toggles are visible on the host only - this panel is served on 127.0.0.1.
+            </div>
+          </div></div>
+        </div>
+      </section>
+
     </div>
 
   </div>
@@ -510,7 +504,7 @@
       syncNameWidth();
       $("uptime").textContent = fmtUptime(s.uptimeMs);
       lastConnected = s.connected;
-      if (!$("rail").hidden) {
+      if (!$("hostCard").hidden) {
         $("admHost").textContent = s.hostName || s.address;
         $("admIface").textContent = (s.interfaceName ? s.interfaceName + " · " : "") + s.address;
         $("admFp").textContent = s.fingerprintSha256;
@@ -636,16 +630,22 @@
         '<label class="switch"><input type="checkbox"'+(up?" checked":"")+(s.toggleable?"":" disabled")+' data-id="'+esc(s.id)+'"><span class="track"></span><span class="knob"></span></label>';
       el.appendChild(row);
     }
+    $("serversDot").classList.toggle("on", list.some(s=>s.toggleable && s.state==="Running"));
     el.querySelectorAll("input[data-id]").forEach(cb=>cb.addEventListener("change",()=>{
       const action=cb.checked?"start":"stop";
       cb.disabled=true;
       fetch("/admin/services/"+encodeURIComponent(cb.dataset.id)+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
     }));
   }
+  function showHostTabs(show){
+    ["sharingTab","liveTab","serversTab"].forEach(id=>$(id).hidden=!show);
+    // if a host-only tab was active when it disappears, fall back to files
+    if(!show && ["sharing","live","servers"].includes(activeView())) document.querySelector('.tab[data-view="files"]').click();
+  }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
-      .then(list=>{ $("rail").hidden=false; $("hostCard").hidden=false; $("grid").classList.remove("no-rail"); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
-      .catch(()=>{ $("rail").hidden=true; $("hostCard").hidden=true; $("grid").classList.add("no-rail"); });
+      .then(list=>{ $("hostCard").hidden=false; showHostTabs(true); renderServices(list); loadStatus(); loadAdmBrowse(); loadPicker(""); loadAdmProxy(); })
+      .catch(()=>{ $("hostCard").hidden=true; showHostTabs(false); });
   }
 
   // ---- browse: a host-served directory (list / download / traverse / upload) ----
@@ -712,7 +712,7 @@
     fetch("/admin/browse").then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(c=>{
       if(c.enabled){ $("brStatus").textContent="Sharing "+c.rootPath+" ("+(c.writable?"read + upload":"read-only")+")."; $("brStop").hidden=false; }
       else { $("brStatus").textContent="Off - clients cannot browse your files."; $("brStop").hidden=true; }
-      $("browseState").textContent = c.enabled ? "on" : "off";
+      $("sharingDot").classList.toggle("on", c.enabled);
     }).catch(()=>{});
   }
   function loadPicker(path){
@@ -749,7 +749,7 @@
         $("pxStatus").textContent="Off - no live site is being served.";
         $("pxStop").hidden=true;
       }
-      $("pxState").textContent = c.enabled ? "serving" : "off";
+      $("liveDot").classList.toggle("on", c.enabled);
     }).catch(()=>{});
   }
   $("pxShare").addEventListener("click",()=>{
@@ -762,23 +762,6 @@
     fetch("/admin/proxy?enabled=false",{method:"POST"}).then(()=>loadAdmProxy()).catch(()=>{});
   });
 
-  // ---- collapsible rail panels (state remembered per panel; all collapsed by default) ----
-  const CHEV='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>';
-  function initCollapsible(){
-    document.querySelectorAll(".panel.collapsible").forEach(p=>{
-      const head=p.querySelector(".panel-head"); if(!head) return;
-      const chev=document.createElement("span"); chev.className="chev"; chev.setAttribute("aria-hidden","true"); chev.innerHTML=CHEV; head.appendChild(chev);
-      const key="rail.open."+p.dataset.panel;
-      let open=false; try{ open=localStorage.getItem(key)==="1"; }catch(e){}
-      p.classList.toggle("collapsed", !open);
-      head.setAttribute("role","button"); head.setAttribute("tabindex","0"); head.setAttribute("aria-expanded", String(open));
-      const toggle=()=>{ const collapsed=p.classList.toggle("collapsed"); head.setAttribute("aria-expanded", String(!collapsed)); try{ localStorage.setItem(key, collapsed?"0":"1"); }catch(e){} };
-      head.addEventListener("click",toggle);
-      head.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); toggle(); } });
-    });
-  }
-  initCollapsible();
-
   // ---- tabs ----
   document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{
     document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
@@ -789,7 +772,7 @@
     if(tab.dataset.view==="browse") openBrowse(brCur);
   }));
   function activeView(){ return document.querySelector('.tab[aria-selected="true"]').dataset.view; }
-  function updateClearBtn(){ const v=activeView(); $("clearBtn").style.display = v==="browse" ? "none" : ""; $("clearBtn").textContent = v==="files" ? "clear files" : "clear chat"; }
+  function updateClearBtn(){ const v=activeView(); $("clearBtn").style.display = (v==="files"||v==="chat") ? "" : "none"; $("clearBtn").textContent = v==="files" ? "clear files" : "clear chat"; }
   updateClearBtn(); // reflect the default tab (files) on load
   $("clearBtn").addEventListener("click",()=>{
     if(activeView()==="files"){
