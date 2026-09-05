@@ -133,6 +133,12 @@
   /* config views (sharing / live site / servers): a scrollable, readable-width column */
   .cfg-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
   .cfg { max-width: 560px; display: flex; flex-direction: column; gap: 12px; }
+  /* ssh / ftp service views */
+  .svc-row { display: flex; align-items: center; gap: 12px; }
+  .svc-info { flex: 1; min-width: 0; }
+  .svc-title { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .svc-status { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .svc-detail { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.55; word-break: break-word; }
   /* sharing tab = browse (left) + sharing config (right) */
   .share-split { flex: 1; min-height: 0; display: flex; }
   .share-browse { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
@@ -349,7 +355,8 @@
           <button class="tab" role="tab" aria-selected="false" data-view="chat"><span class="tdot" id="chatDot"></span>chat</button>
           <button class="tab" role="tab" aria-selected="false" data-view="sharing" id="sharingTab" hidden><span class="tdot" id="sharingDot"></span>browse files</button>
           <button class="tab host-tab" role="tab" aria-selected="false" data-view="live" id="liveTab" hidden><span class="tdot" id="liveDot"></span>serve site</button>
-          <button class="tab host-tab" role="tab" aria-selected="false" data-view="servers" id="serversTab" hidden><span class="tdot" id="serversDot"></span>servers</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="ftp" id="ftpTab" hidden><span class="tdot" id="ftpDot"></span>ftp</button>
+          <button class="tab host-tab" role="tab" aria-selected="false" data-view="ssh" id="sshTab" hidden><span class="tdot" id="sshDot"></span>ssh</button>
           <span class="tab-spacer"></span>
           <button class="mini-btn" id="clearBtn" type="button">clear files</button>
         </div>
@@ -429,12 +436,30 @@
           </div></div>
         </div>
 
-        <div class="view" id="view-servers" role="tabpanel">
+        <div class="view" id="view-ftp" role="tabpanel">
           <div class="cfg-wrap"><div class="cfg">
-            <div id="svcList"></div>
+            <div class="svc-row">
+              <div class="svc-info"><div class="svc-title">FTP / FTPS</div><div class="svc-status" id="ftpStatus">Off</div></div>
+              <label class="switch"><input type="checkbox" id="ftpToggle" data-id="ftp"><span class="track"></span><span class="knob"></span></label>
+            </div>
+            <div class="svc-detail" id="ftpDetail"></div>
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-              Server toggles are visible on the host only - this panel is served on 127.0.0.1.
+              Explicit-TLS FTP, jailed to the shared files. Host only - served on 127.0.0.1.
+            </div>
+          </div></div>
+        </div>
+
+        <div class="view" id="view-ssh" role="tabpanel">
+          <div class="cfg-wrap"><div class="cfg">
+            <div class="svc-row">
+              <div class="svc-info"><div class="svc-title">SSH / SFTP</div><div class="svc-status" id="sshStatus">Off</div></div>
+              <label class="switch"><input type="checkbox" id="sshToggle" data-id="ssh"><span class="track"></span><span class="knob"></span></label>
+            </div>
+            <div class="svc-detail" id="sshDetail"></div>
+            <div class="rail-note">
+              <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+              Encrypted SFTP, jailed to the shared files (no OS shell). Host only - served on 127.0.0.1.
             </div>
           </div></div>
         </div>
@@ -624,30 +649,24 @@
   $("attach").addEventListener("click",()=>fileInput.click());
 
   // ---- admin (host only) ----
-  function svcSub(s){
-    if (s.id==="http") return ":"+s.port+" · dashboard, files, chat" + (lastConnected?(" · "+lastConnected+" connected"):"");
-    return ":"+s.port + (s.detail ? " · "+s.detail : "");
-  }
+  // SSH and FTP each have their own tab; http is always-on and has no UI.
   function renderServices(list){
-    const el=$("svcList"); el.innerHTML="";
     for(const s of list){
+      if(s.id!=="ftp" && s.id!=="ssh") continue;
       const up = s.state==="Running";
-      const row=document.createElement("div"); row.className="svc"+(up?" up":"");
-      row.innerHTML =
-        '<span class="svc-ico">'+(SVCICON[s.id]||SVCICON.http)+'</span>'+
-        '<div class="svc-meta"><div class="svc-name">'+esc(s.id)+' <span class="lock" title="encrypted">'+LOCK+'</span></div>'+
-        '<div class="svc-sub">'+esc(svcSub(s))+'</div></div>'+
-        '<span class="svc-state '+(up?"st-up":"st-down")+'">'+(up?"up":"down")+'</span>'+
-        '<label class="switch"><input type="checkbox"'+(up?" checked":"")+(s.toggleable?"":" disabled")+' data-id="'+esc(s.id)+'"><span class="track"></span><span class="knob"></span></label>';
-      el.appendChild(row);
+      const dot=$(s.id+"Dot"); if(dot) dot.classList.toggle("on", up);
+      const st=$(s.id+"Status"); if(st) st.textContent = up ? "Running" : "Off";
+      const det=$(s.id+"Detail"); if(det) det.textContent = s.detail || "";
+      const cb=$(s.id+"Toggle"); if(cb){ cb.checked=up; cb.disabled=!s.toggleable; }
     }
-    $("serversDot").classList.toggle("on", list.some(s=>s.toggleable && s.state==="Running"));
-    el.querySelectorAll("input[data-id]").forEach(cb=>cb.addEventListener("change",()=>{
-      const action=cb.checked?"start":"stop";
-      cb.disabled=true;
-      fetch("/admin/services/"+encodeURIComponent(cb.dataset.id)+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
-    }));
   }
+  ["ftp","ssh"].forEach(id=>{
+    const cb=$(id+"Toggle"); if(!cb) return;
+    cb.addEventListener("change",()=>{
+      const action=cb.checked?"start":"stop"; cb.disabled=true;
+      fetch("/admin/services/"+id+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
+    });
+  });
   let hostMode=false, brEnabled=false;
   // The "sharing" tab shows for the host (to configure) OR any client once a folder is shared
   // (to browse). Its config pane is host-only.
@@ -659,9 +678,9 @@
   }
   function applyHostMode(host){
     hostMode = host;
-    $("liveTab").hidden = !host; $("serversTab").hidden = !host;
+    $("liveTab").hidden = !host; $("ftpTab").hidden = !host; $("sshTab").hidden = !host;
     updateSharingTab();
-    if(!host && ["live","servers"].includes(activeView())) document.querySelector('.tab[data-view="files"]').click();
+    if(!host && ["live","ftp","ssh"].includes(activeView())) document.querySelector('.tab[data-view="files"]').click();
   }
   function checkAdmin(){
     fetch("/admin/services").then(r=>{ if(!r.ok) throw 0; return r.json(); })
