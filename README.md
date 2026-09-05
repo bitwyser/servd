@@ -10,8 +10,9 @@
 **A portable local-network server tool.** Run it on a computer or an Android phone and that device
 becomes a hub other devices on the same Wi-Fi or hotspot reach straight from a browser - no client
 to install. It serves an encrypted dashboard with real-time chat, a live roster of who's connected,
-and drag-n-drop file sharing, plus built-in SSH/SFTP and FTPS servers you toggle on from the admin
-panel.
+drag-n-drop file sharing, a browsable view of a host-chosen folder, a reverse proxy that re-serves a
+running web app to the LAN, and built-in SSH/SFTP and FTPS servers. Everything is a tab in the
+dashboard; the tabs that configure the host appear only on the host itself.
 
 Every transport is encrypted - HTTPS/WSS, SSH, FTPS. A LAN has no certificate authority, so the
 self-signed certificate is verified by its **SHA-256 fingerprint** rather than a CA. The same stack
@@ -43,9 +44,11 @@ and the UI is the served dashboard on every platform.
 ## Overview
 
 servd turns one device into a hub for a trusted local network. The host runs a single HTTPS server
-that serves a web dashboard, real-time chat, and file sharing; two optional file-transfer servers
-(SSH/SFTP and FTPS) can be toggled on from a host-only admin panel. Other devices join by opening
-the hub's URL in a browser (or scanning a QR) - no client to install.
+that serves a web dashboard - real-time chat, file sharing, a browsable host folder, and a reverse
+proxy for a running web app - plus two optional file-transfer servers (SSH/SFTP and FTPS). Each of
+these is a **tab** in the dashboard; the tabs that configure the host (folder sharing, serve-site,
+ssh, ftp) are gated to the host itself. Other devices join by opening the hub's URL in a browser (or
+scanning a QR) - no client to install.
 
 The **same stack runs on desktop and Android**; a phone is a full hub, not a lesser version. The UI
 is the served web dashboard on every platform (no native app UI beyond a thin Android control
@@ -70,17 +73,21 @@ download dependencies; a packaged build - or one you've already built - runs wit
 - **Drag-n-drop file sharing** - drop a file and it appears on every device instantly; download,
   delete one, or clear all.
 - **Browse a host-chosen folder** (optional) - the host can serve a real directory (read-only, or
-  with uploads) that clients list, traverse, and download in a **browse** tab; off by default, set
-  up from the host-only admin panel, and jailed to the chosen folder.
-- **Serve a live site** (optional) - a built-in reverse proxy re-serves a web app you're running
-  (any HTTP/HTTPS server - a Node/Vite dev server, a static host, another service) to the whole LAN
-  over servd's HTTPS, on a dedicated port. Handles WebSockets (HMR / live-reload); off by default.
+  with uploads) that clients list, traverse, and download in the **browse files** tab; off by
+  default, set up right in that tab (host only), and jailed to the chosen folder.
+- **Serve a live site** (optional) - the **serve site** tab is a built-in reverse proxy that
+  re-serves a web app you're running (any HTTP/HTTPS server - a Node/Vite dev server, a static host,
+  another service) to the whole LAN over servd's HTTPS, on a dedicated port. Handles WebSockets
+  (HMR / live-reload); off by default.
 - **Scan-to-join QR** of the hub URL, so a phone joins without typing an IP.
-- **SSH/SFTP server** (optional) - credentialed SFTP jailed to the shared files, no OS shell.
-- **FTPS server** (optional) - explicit-TLS FTP, same credential, jailed to the shared files.
+- **SSH/SFTP server** (optional) - the **ssh** tab toggles credentialed SFTP jailed to the shared
+  files, no OS shell.
+- **FTPS server** (optional) - the **ftp** tab toggles explicit-TLS FTP, same credential, jailed to
+  the shared files.
 - **Auto-discovery (mDNS)** - the hub advertises `_servd._tcp`; other devices find it without an IP.
-- **Host-only admin panel** - host info, cert fingerprint, and live server toggles, served on
-  loopback only.
+- **Host-only tabs** - the folder-sharing, serve-site, ssh, and ftp tabs (and a host-info card with
+  the cert fingerprint) show only on the host, served on loopback; each host tab shows a live status
+  dot.
 - **Self-signed TLS** with a printed, verifiable SHA-256 fingerprint.
 - **Desktop CLI** that starts the hub, prints the fingerprint, and auto-opens the dashboard.
 - **Android host** with a foreground service (survives backgrounding) and a native control screen.
@@ -147,8 +154,8 @@ keystore: C:\Users\you\.servd\keystore.jks
 Press Ctrl+C to stop.
 ```
 
-The **admin** URL (`127.0.0.1`) is your own machine, with the server-toggle panel; the **serving**
-URL is what you share. Your browser warns that the certificate isn't trusted - expected for a
+The **admin** URL (`127.0.0.1`) is your own machine, where the host-only tabs (folder sharing,
+serve-site, ssh, ftp) appear; the **serving** URL is what you share. Your browser warns that the certificate isn't trusted - expected for a
 self-signed LAN cert. Confirm the fingerprint shown in the page matches the one printed above, then
 proceed.
 
@@ -160,8 +167,8 @@ batch job?" prompt after the server has already stopped.
 1. Put the other device on the **same Wi-Fi** (or connect it to this machine's **hotspot**).
 2. Open **`https://<the-serving-address>:8443`** in its browser.
 3. Accept the certificate warning, set a display name, and start chatting. Each connected device
-   appears in the **Devices** roster; the **Files** tab does drag-n-drop to everyone. Or just
-   **scan the QR** in the Devices panel to open the hub on a phone.
+   appears in the **Devices** roster; the **drop files** tab does drag-n-drop to everyone. Or just
+   **scan the QR** in the left column to open the hub on a phone.
 
 > **On Linux/macOS, use `./run.sh` wherever this README shows `.\run.ps1`** - both take the same
 > servd flags and Gradle tasks.
@@ -193,8 +200,8 @@ Then, on the phone:
 2. Open **servd** and tap **Start hub**. The control screen shows the **share URL**, a
    **scan-to-join QR**, the cert **fingerprint** to verify, and the **SSH/FTP credentials**.
 3. On another device, open the share URL (or scan the QR) and accept the certificate warning - the
-   same dashboard as desktop. SSH and FTP start off; enable them from the admin dashboard, which the
-   phone reaches on its own `127.0.0.1`.
+   same dashboard as desktop. SSH and FTP start off; enable them from the **ssh** / **ftp** tabs,
+   which appear when the phone opens the dashboard on its own `127.0.0.1`.
 
 The hub keeps running in the background with a persistent notification (tap **Stop** there or in the
 app to stop it).
@@ -203,16 +210,35 @@ app to stop it).
 
 ## Usage & configuration
 
+### The dashboard
+
+Everything is a **tab** in the served page. Client tabs are visible to everyone on the hub; **host
+tabs appear only on the host** (loopback), and each host tab carries a small dot that turns green
+when that feature is live.
+
+| Tab | Who sees it | What it does |
+|---|---|---|
+| **drop files** | everyone | drag-n-drop files that push to every connected device |
+| **chat** | everyone | real-time chat |
+| **browse files** | host always; clients once a folder is shared | browse/download the shared host folder (left); the host picks the folder and toggles uploads (right) |
+| **serve site** | host only | re-serve a running web app to the LAN (reverse proxy) |
+| **ftp** | host only | toggle the FTPS server; shows its port + credentials |
+| **ssh** | host only | toggle the SSH/SFTP server; shows its port + credentials |
+
+The **left column** holds the connected-device roster and the scan-to-join QR, and - on the host - a
+**This host** card with the address, bound interface, and cert fingerprint.
+
 ### Default ports
 
 | Service | Port | Notes |
 |---|---|---|
 | HTTPS dashboard + chat + files | `8443` | always on |
-| SSH / SFTP | `2222` | optional, off until enabled from the admin panel |
-| FTPS | `2121` | optional, off until enabled from the admin panel |
+| SSH / SFTP | `2222` | optional, off until enabled from the **ssh** tab |
+| FTPS | `2121` | optional, off until enabled from the **ftp** tab |
+| Live-site proxy | `8080` | optional, only while a site is being served (configurable) |
 
 All are non-privileged ports. SSH/FTP share one generated credential (username `servd`), shown in
-the admin panel.
+the **ssh** and **ftp** tabs.
 
 ### Desktop CLI
 
@@ -228,9 +254,9 @@ The runner passes servd flags straight through:
 | `--host IP` | Bind address | detected LAN IP (else `127.0.0.1`) |
 | `--dir PATH` | Data dir (keystore, files, credential) | `~/.servd` |
 | `--no-open` | Don't auto-open the browser | (opens) |
-| `--browse-dir PATH` | Serve this folder to clients on start (see [File browsing](#file-browsing-serve-a-host-folder)) | (off) |
+| `--browse-dir PATH` | Serve this folder to clients on start (see [Browse files](#browse-files-serve-a-host-folder)) | (off) |
 | `--browse-write` | Allow uploads into the browsed folder | read-only |
-| `--proxy-target URL` | Re-serve a running site to the LAN (see [Live site](#live-site-serve-a-running-app)) | (off) |
+| `--proxy-target URL` | Re-serve a running site to the LAN (see [Serve site](#serve-site-a-running-web-app)) | (off) |
 | `--proxy-port N` | Port the reverse proxy listens on | `8080` |
 
 Find running hubs on the network without typing an IP:
@@ -246,17 +272,18 @@ Any Gradle task passes through too, e.g. `.\run.ps1 :core:desktopTest`.
 On desktop, servd keeps its TLS keystore, the shared files, and the SSH/FTP credential under
 `~/.servd` (override with `--dir`). On Android the equivalent lives in the app's private storage.
 
-### File browsing (serve a host folder)
+### Browse files (serve a host folder)
 
-Beyond the shared **Files** drop, the host can expose a **real directory** on its device for clients
-to browse - list folders, traverse, and download, with optional uploads. It is **off by default**
-and configured only from the **host-only admin panel** (loopback):
+Beyond the shared **drop files** box, the host can expose a **real directory** on its device for
+clients to browse - list folders, traverse, and download, with optional uploads. It lives in the
+**browse files** tab and is **off by default**:
 
-1. Open the dashboard on the host (`127.0.0.1`) and, in **File browsing**, navigate the built-in
-   picker to a folder (a whole drive works too).
-2. Tick **allow uploads** for read + write, or leave it unticked for read-only, then
-   **share this folder**. Clients get a **browse** tab to list, open, and download; **stop sharing**
-   turns it off, and you can switch to a different folder at any time.
+1. Open the dashboard on the host (`127.0.0.1`) and go to **browse files**. The tab splits into the
+   folder browser (left) and the host-only sharing controls (right).
+2. On the right, navigate the built-in picker to a folder (a whole drive works too), tick
+   **allow uploads** for read + write (or leave it for read-only), then **share this folder**. The
+   left side now browses that folder; **stop sharing** turns it off, and you can switch folders any
+   time. Clients only ever see the left browser, and only once a folder is shared.
 
 On desktop you can also start it straight from the CLI with `--browse-dir PATH` (add `--browse-write`
 to permit uploads). On **Android**, browsing the phone's storage needs **all-files access** - tap
@@ -264,15 +291,15 @@ to permit uploads). On **Android**, browsing the phone's storage needs **all-fil
 picker then starts at **Internal storage**. Everything served is **jailed to the chosen folder** -
 paths that try to escape it are refused.
 
-### Live site (serve a running app)
+### Serve site (a running web app)
 
 Point servd at a web server you're already running and it **re-serves that app to the whole LAN**
 over its own HTTPS - a local, LAN-only tunnel. Works with any HTTP/HTTPS backend (a Node/Vite dev
 server, a static host, another service), and proxies **WebSockets** too, so dev-server HMR /
-live-reload keeps working. Off by default, host-only (loopback admin):
+live-reload keeps working. Off by default, host-only:
 
 1. Start your app however you normally do (e.g. `npm run dev` on `http://localhost:3000`).
-2. Open the dashboard on the host (`127.0.0.1`) and, in **Live site**, enter the target
+2. Open the dashboard on the host (`127.0.0.1`) and, in the **serve site** tab, enter the target
    (`http://localhost:3000`) and a port to serve on (default `8080`), then **serve this site**.
 3. Everyone opens **`https://<the-serving-address>:8080/`** - the app is served at the root, so SPA
    routes and absolute asset paths work unchanged. **stop** turns it off; you can switch targets
@@ -297,12 +324,12 @@ servd is built for a **trusted LAN**, and its boundaries are deliberate:
 - **SSH and FTP** require the generated credential - never anonymous. FTP is FTPS (explicit TLS),
   SFTP is encrypted by design, and both are **jailed to the shared files directory** (no OS shell,
   no access outside that folder).
-- **File browsing** (serving a host folder) is **off by default**, configured only from the host
-  (loopback admin), and **jailed to the chosen folder** - clients cannot traverse above it, and
-  uploads are refused unless the host enabled them.
-- **Live site** (the reverse proxy) is **off by default** and configured only from the host
-  (loopback admin). While on, it exposes whatever app the host targeted to the LAN with no auth
-  (same trusted-LAN model), on its own port; stopping it closes that port.
+- **Browse files** (serving a host folder) is **off by default**, configured only from the host
+  (loopback), and **jailed to the chosen folder** - clients cannot traverse above it, and uploads
+  are refused unless the host enabled them.
+- **Serve site** (the reverse proxy) is **off by default** and configured only from the host
+  (loopback). While on, it exposes whatever app the host targeted to the LAN with no auth (same
+  trusted-LAN model), on its own port; stopping it closes that port.
 - **Transport is encrypted** end to end on the wire (HTTPS/WSS, SSH, FTPS), verified by the cert
   **fingerprint** rather than a CA. This is **transport encryption, not end-to-end**: the host
   device (the server) can see traffic, as expected for a hub.
