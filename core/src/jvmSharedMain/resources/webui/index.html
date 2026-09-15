@@ -371,7 +371,7 @@
             <button type="button" class="icon-btn" id="attach" aria-label="Share a file">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5 12.5 21a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L10 18.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></svg>
             </button>
-            <textarea id="text" rows="1" placeholder="Message the hub...  (Enter for new line, Ctrl+Enter to send)" aria-label="Message"></textarea>
+            <textarea id="text" rows="1" placeholder="Message the hub...  (Enter to send, Ctrl+Enter for new line)" aria-label="Message"></textarea>
             <button class="send" type="submit" id="send" aria-label="Send" title="Send" disabled>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
@@ -886,8 +886,19 @@
   }
   function sendMsg(){ const t=textInput.value.replace(/\s+$/,""); if(!t||!ws||ws.readyState!==1) return; ws.send(JSON.stringify({type:"chat",text:t})); textInput.value=""; autoGrow(); }
   $("composer").addEventListener("submit",e=>{ e.preventDefault(); sendMsg(); });
-  // Enter inserts a newline (textarea default); Ctrl/Cmd+Enter sends.
-  textInput.addEventListener("keydown",e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); sendMsg(); } });
+  // Enter sends; Ctrl/Cmd+Enter (and Shift+Enter, via default) inserts a newline.
+  textInput.addEventListener("keydown",e=>{
+    if(e.key!=="Enter") return;
+    if(e.ctrlKey||e.metaKey){
+      e.preventDefault();
+      const s=textInput.selectionStart, en=textInput.selectionEnd, v=textInput.value;
+      textInput.value=v.slice(0,s)+"\n"+v.slice(en);
+      textInput.selectionStart=textInput.selectionEnd=s+1;
+      autoGrow();
+    } else if(!e.shiftKey){
+      e.preventDefault(); sendMsg();
+    }
+  });
   textInput.addEventListener("input",autoGrow);
   autoGrow(); // set the initial height/overflow so a single line never shows a scrollbar
 
