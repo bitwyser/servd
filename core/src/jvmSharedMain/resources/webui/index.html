@@ -132,7 +132,8 @@
   .tdot.on { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   /* config views (sharing / live site / servers): a scrollable, readable-width column */
   .cfg-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
-  .cfg { max-width: 560px; display: flex; flex-direction: column; gap: 12px; }
+  .cfg { display: flex; flex-direction: column; gap: 12px; }
+  .cfg .px-field, .cfg .field { max-width: 560px; } /* keep inputs readable; text below flows full width */
   /* ssh / ftp service views */
   .svc-row { display: flex; align-items: center; gap: 12px; }
   .svc-info { flex: 1; min-width: 0; }
@@ -141,8 +142,10 @@
   .svc-cfg { max-width: none; } /* ssh/ftp use the full width so lines don't wrap */
   .svc-connect { display: flex; align-items: center; gap: 10px; }
   .svc-connect .svc-k { flex-shrink: 0; width: 68px; font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
-  .svc-connect code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; }
-  .svc-connect .mini-btn { flex-shrink: 0; }
+  .svc-box { display: inline-flex; align-items: stretch; width: min(100%, 440px); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .svc-box code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; display: flex; align-items: center; font-family: var(--mono); font-size: 12.5px; color: var(--ink); padding: 6px 9px; }
+  .svc-box .svc-copy { flex-shrink: 0; width: 30px; display: grid; place-items: center; border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
+  .svc-box .svc-copy:hover { color: var(--accent-ink); background: var(--surface); }
   /* sharing tab = browse (left) + sharing config (right) */
   .share-split { flex: 1; min-height: 0; display: flex; }
   .share-browse { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
@@ -446,8 +449,8 @@
               <div class="svc-info"><div class="svc-title">FTP / FTPS</div><div class="svc-status" id="ftpStatus">Off</div></div>
               <label class="switch"><input type="checkbox" id="ftpToggle" data-id="ftp"><span class="track"></span><span class="knob"></span></label>
             </div>
-            <div class="svc-connect"><span class="svc-k">connect</span><code id="ftpCmd">-</code><button class="mini-btn" id="ftpCopy" type="button">copy</button></div>
-            <div class="svc-connect"><span class="svc-k">password</span><code id="ftpPass">-</code><button class="mini-btn" id="ftpPassCopy" type="button">copy</button></div>
+            <div class="svc-connect"><span class="svc-k">connect</span><div class="svc-box"><code id="ftpCmd">-</code><button class="svc-copy" id="ftpCopy" type="button" aria-label="Copy" title="Copy"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div></div>
+            <div class="svc-connect"><span class="svc-k">password</span><div class="svc-box"><code id="ftpPass">-</code><button class="svc-copy" id="ftpPassCopy" type="button" aria-label="Copy" title="Copy"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div></div>
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
               Explicit-TLS FTP, jailed to the shared files. Host only - served on 127.0.0.1.
@@ -461,8 +464,8 @@
               <div class="svc-info"><div class="svc-title">SSH / SFTP</div><div class="svc-status" id="sshStatus">Off</div></div>
               <label class="switch"><input type="checkbox" id="sshToggle" data-id="ssh"><span class="track"></span><span class="knob"></span></label>
             </div>
-            <div class="svc-connect"><span class="svc-k">connect</span><code id="sshCmd">-</code><button class="mini-btn" id="sshCopy" type="button">copy</button></div>
-            <div class="svc-connect"><span class="svc-k">password</span><code id="sshPass">-</code><button class="mini-btn" id="sshPassCopy" type="button">copy</button></div>
+            <div class="svc-connect"><span class="svc-k">connect</span><div class="svc-box"><code id="sshCmd">-</code><button class="svc-copy" id="sshCopy" type="button" aria-label="Copy" title="Copy"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div></div>
+            <div class="svc-connect"><span class="svc-k">password</span><div class="svc-box"><code id="sshPass">-</code><button class="svc-copy" id="sshPassCopy" type="button" aria-label="Copy" title="Copy"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div></div>
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
               Encrypted SFTP, jailed to the shared files (no OS shell). Host only - served on 127.0.0.1.
