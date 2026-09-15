@@ -138,7 +138,11 @@
   .svc-info { flex: 1; min-width: 0; }
   .svc-title { font-family: var(--mono); font-size: 13px; color: var(--ink); }
   .svc-status { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
-  .svc-detail { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.55; word-break: break-word; }
+  .svc-cfg { max-width: none; } /* ssh/ftp use the full width so lines don't wrap */
+  .svc-connect { display: flex; align-items: center; gap: 10px; }
+  .svc-connect .svc-k { flex-shrink: 0; width: 68px; font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+  .svc-connect code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; }
+  .svc-connect .mini-btn { flex-shrink: 0; }
   /* sharing tab = browse (left) + sharing config (right) */
   .share-split { flex: 1; min-height: 0; display: flex; }
   .share-browse { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
@@ -437,12 +441,13 @@
         </div>
 
         <div class="view" id="view-ftp" role="tabpanel">
-          <div class="cfg-wrap"><div class="cfg">
+          <div class="cfg-wrap"><div class="cfg svc-cfg">
             <div class="svc-row">
               <div class="svc-info"><div class="svc-title">FTP / FTPS</div><div class="svc-status" id="ftpStatus">Off</div></div>
               <label class="switch"><input type="checkbox" id="ftpToggle" data-id="ftp"><span class="track"></span><span class="knob"></span></label>
             </div>
-            <div class="svc-detail" id="ftpDetail"></div>
+            <div class="svc-connect"><span class="svc-k">connect</span><code id="ftpCmd">-</code><button class="mini-btn" id="ftpCopy" type="button">copy</button></div>
+            <div class="svc-connect"><span class="svc-k">password</span><code id="ftpPass">-</code><button class="mini-btn" id="ftpPassCopy" type="button">copy</button></div>
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
               Explicit-TLS FTP, jailed to the shared files. Host only - served on 127.0.0.1.
@@ -451,12 +456,13 @@
         </div>
 
         <div class="view" id="view-ssh" role="tabpanel">
-          <div class="cfg-wrap"><div class="cfg">
+          <div class="cfg-wrap"><div class="cfg svc-cfg">
             <div class="svc-row">
               <div class="svc-info"><div class="svc-title">SSH / SFTP</div><div class="svc-status" id="sshStatus">Off</div></div>
               <label class="switch"><input type="checkbox" id="sshToggle" data-id="ssh"><span class="track"></span><span class="knob"></span></label>
             </div>
-            <div class="svc-detail" id="sshDetail"></div>
+            <div class="svc-connect"><span class="svc-k">connect</span><code id="sshCmd">-</code><button class="mini-btn" id="sshCopy" type="button">copy</button></div>
+            <div class="svc-connect"><span class="svc-k">password</span><code id="sshPass">-</code><button class="mini-btn" id="sshPassCopy" type="button">copy</button></div>
             <div class="rail-note">
               <span class="lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
               Encrypted SFTP, jailed to the shared files (no OS shell). Host only - served on 127.0.0.1.
@@ -535,6 +541,7 @@
   function loadStatus(){
     fetch("/status").then(r=>r.json()).then(s => {
       $("hostUrl").textContent = location.protocol + "//" + s.address + ":" + s.port;
+      hubAddr = s.address; renderConnect();
       if(s.version) $("brandVer").textContent = "v"+s.version;
       syncNameWidth();
       $("uptime").textContent = fmtUptime(s.uptimeMs);
@@ -650,21 +657,38 @@
 
   // ---- admin (host only) ----
   // SSH and FTP each have their own tab; http is always-on and has no UI.
+  let hubAddr="", lastSvc=[];
   function renderServices(list){
+    lastSvc = list;
     for(const s of list){
       if(s.id!=="ftp" && s.id!=="ssh") continue;
       const up = s.state==="Running";
       const dot=$(s.id+"Dot"); if(dot) dot.classList.toggle("on", up);
       const st=$(s.id+"Status"); if(st) st.textContent = up ? "Running" : "Off";
-      const det=$(s.id+"Detail"); if(det) det.textContent = s.detail || "";
       const cb=$(s.id+"Toggle"); if(cb){ cb.checked=up; cb.disabled=!s.toggleable; }
+    }
+    renderConnect();
+  }
+  // A ready-to-paste connect command (uses the LAN address, not this loopback dashboard's), plus
+  // the password on its own line - sftp can't take it on the command line.
+  function renderConnect(){
+    const addr = hubAddr || "host";
+    for(const s of lastSvc){
+      if(s.id!=="ftp" && s.id!=="ssh") continue;
+      const pass = (s.detail && s.detail.match(/password:\s*(\S+)/) || [])[1] || "";
+      const cmd = s.id==="ssh" ? ("sftp -P "+s.port+" servd@"+addr) : ("ftps://servd@"+addr+":"+s.port);
+      const c=$(s.id+"Cmd"); if(c) c.textContent = cmd;
+      const p=$(s.id+"Pass"); if(p) p.textContent = pass || "-";
     }
   }
   ["ftp","ssh"].forEach(id=>{
-    const cb=$(id+"Toggle"); if(!cb) return;
-    cb.addEventListener("change",()=>{
+    const cb=$(id+"Toggle");
+    if(cb) cb.addEventListener("change",()=>{
       const action=cb.checked?"start":"stop"; cb.disabled=true;
       fetch("/admin/services/"+id+"/"+action,{method:"POST"}).then(r=>r.json()).then(l=>{renderServices(l);loadStatus();}).catch(checkAdmin);
+    });
+    [[id+"Copy", id+"Cmd"], [id+"PassCopy", id+"Pass"]].forEach(([b,t])=>{
+      const btn=$(b); if(btn) btn.addEventListener("click",()=>{ if(navigator.clipboard) navigator.clipboard.writeText($(t).textContent); });
     });
   });
   let hostMode=false, brEnabled=false;
